@@ -14,10 +14,11 @@ namespace NzbDrone.Core.NetImport.Radarr
         public override NetImportType ListType => NetImportType.Program;
 
         public RadarrImport(IHttpClient httpClient,
+                            INetImportStatusService netImportStatusService,
                             IConfigService configService,
                             IParsingService parsingService,
                             Logger logger)
-            : base(httpClient, configService, parsingService, logger)
+            : base(httpClient, netImportStatusService, configService, parsingService, logger)
         {
         }
 
