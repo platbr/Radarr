@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.Json;
 using Dapper;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Reflection;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.ThingiProvider
@@ -25,7 +26,11 @@ namespace NzbDrone.Core.ThingiProvider
             {
                 var parser = reader.GetRowParser<TProviderDefinition>(typeof(TProviderDefinition));
                 var settingsIndex = reader.GetOrdinal("Settings");
-                var serializerSettings = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var serializerSettings = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    Converters = { new SingleOrArrayConverter<string>() },
+                };
 
                 while (reader.Read())
                 {
