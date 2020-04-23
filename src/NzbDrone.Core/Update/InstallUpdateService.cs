@@ -16,12 +16,12 @@ using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Update
 {
-    public class InstallUpdateService : IExecute<ApplicationUpdateCommand>
+    public class InstallUpdateService : IExecute<InstallUpdateCommand>, IExecute<ApplicationUpdateCommand>
     {
         private readonly ICheckUpdateService _checkUpdateService;
         private readonly Logger _logger;
         private readonly IAppFolderInfo _appFolderInfo;
-
+        private readonly IManageCommandQueue _commandQueueManager;
         private readonly IDiskProvider _diskProvider;
         private readonly IDiskTransferService _diskTransferService;
         private readonly IHttpClient _httpClient;
@@ -37,6 +37,7 @@ namespace NzbDrone.Core.Update
 
         public InstallUpdateService(ICheckUpdateService checkUpdateService,
                                     IAppFolderInfo appFolderInfo,
+                                    IManageCommandQueue commandQueueManager,
                                     IDiskProvider diskProvider,
                                     IDiskTransferService diskTransferService,
                                     IHttpClient httpClient,
@@ -58,6 +59,7 @@ namespace NzbDrone.Core.Update
 
             _checkUpdateService = checkUpdateService;
             _appFolderInfo = appFolderInfo;
+            _commandQueueManager = commandQueueManager;
             _diskProvider = diskProvider;
             _diskTransferService = diskTransferService;
             _httpClient = httpClient;
@@ -245,9 +247,20 @@ namespace NzbDrone.Core.Update
                 return;
             }
 
+            _commandQueueManager.Push(new InstallUpdateCommand(latestAvailable));
+        }
+
+        public void Execute(InstallUpdateCommand message)
+        {
+            if (message.LatestUpdate == null)
+            {
+                _logger.ProgressDebug("No update available");
+                return;
+            }
+
             try
             {
-                InstallUpdate(latestAvailable);
+                InstallUpdate(message.LatestUpdate);
                 _logger.ProgressDebug("Restarting Radarr to apply updates");
             }
             catch (UpdateFolderNotWritableException ex)
