@@ -20,6 +20,7 @@ namespace NzbDrone.Core.MediaFiles
         MovieFile MoveMovieFile(MovieFile movieFile, Movie movie);
         MovieFile MoveMovieFile(MovieFile movieFile, LocalMovie localMovie);
         MovieFile CopyMovieFile(MovieFile movieFile, LocalMovie localMovie);
+        void KeepFileNameHistory(string baseDir, string newName, string originalName);
     }
 
     public class MovieFileMovingService : IMoveMovieFiles
@@ -97,6 +98,20 @@ namespace NzbDrone.Core.MediaFiles
 
             _logger.Debug("Copying movie file: {0} to {1}", movieFile.Path, filePath);
             return TransferFile(movieFile, localMovie.Movie, filePath, TransferMode.Copy);
+        }
+
+        public void KeepFileNameHistory(string baseDir, string newName, string originalName)
+        {
+            Ensure.That(baseDir, () => baseDir).IsValidPath();
+            Ensure.That(newName, () => newName).IsNotNull();
+            Ensure.That(originalName,() => originalName).IsNotNull();
+
+            var fileNameHistoryPath = Path.Combine(baseDir, "file_info");
+            _logger.Info("Keeping FileName History: {0}", fileNameHistoryPath);
+            var fileNameHistory = new FileNameHistory(fileNameHistoryPath);
+            fileNameHistory.Load();
+            fileNameHistory.Append(newName, originalName);
+            fileNameHistory.Save();
         }
 
         private MovieFile TransferFile(MovieFile movieFile, Movie movie, string destinationFilePath, TransferMode mode)

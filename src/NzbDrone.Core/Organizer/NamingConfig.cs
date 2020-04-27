@@ -8,6 +8,7 @@ namespace NzbDrone.Core.Organizer
         public static NamingConfig Default => new NamingConfig
         {
             RenameEpisodes = false,
+            KeepFileNameHistory = false,
             ReplaceIllegalCharacters = true,
             ColonReplacementFormat = 0,
             MultiEpisodeStyle = 0,
@@ -16,6 +17,7 @@ namespace NzbDrone.Core.Organizer
         };
 
         public bool RenameEpisodes { get; set; }
+        public bool KeepFileNameHistory { get; set; }
         public bool ReplaceIllegalCharacters { get; set; }
         public ColonReplacementFormat ColonReplacementFormat { get; set; }
         public int MultiEpisodeStyle { get; set; }

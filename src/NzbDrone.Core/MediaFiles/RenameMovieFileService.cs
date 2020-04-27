@@ -35,6 +35,7 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IEventAggregator _eventAggregator;
         private readonly IBuildFileNames _filenameBuilder;
         private readonly IConfigService _configService;
+        private readonly INamingConfigService _namingConfigService;
         private readonly IDiskProvider _diskProvider;
         private readonly IRecycleBinProvider _recycleBinProvider;
         private readonly Logger _logger;
@@ -55,6 +56,7 @@ namespace NzbDrone.Core.MediaFiles
             _eventAggregator = eventAggregator;
             _filenameBuilder = filenameBuilder;
             _configService = configService;
+            _namingConfigService = _namingConfigService;
             _recycleBinProvider = recycleBinProvider;
             _diskProvider = diskProvider;
             _logger = logger;
@@ -106,12 +108,17 @@ namespace NzbDrone.Core.MediaFiles
             foreach (var movieFile in movieFiles)
             {
                 var oldMovieFilePath = Path.Combine(oldMoviePath, movieFile.RelativePath);
+                var oldMovieRelativePath = movieFile.RelativePath;
                 movieFile.Path = oldMovieFilePath;
 
                 try
                 {
                     _logger.Debug("Renaming movie file: {0}", movieFile);
                     _movieFileMover.MoveMovieFile(movieFile, movie);
+                    if (_namingConfigService.GetConfig().KeepFileNameHistory)
+                    {
+                        _movieFileMover.KeepFileNameHistory(oldMoviePath, movieFile.RelativePath, oldMovieRelativePath);
+                    }
 
                     _mediaFileService.Update(movieFile);
                     _movieService.UpdateMovie(movie);

@@ -146,6 +146,7 @@
     <Compile Include="Datastore\Migration\149_convert_regex_required_tags.cs" />
     <Compile Include="Datastore\Migration\150_fix_format_tags_double_underscore.cs" />
     <Compile Include="Datastore\Migration\151_add_tags_to_net_import.cs" />
+    <Compile Include="Datastore\Migration\152_add_keep_file_name_history_to_naming_config.cs" />
     <Compile Include="DecisionEngine\Specifications\CustomFormatAllowedByProfileSpecification.cs" />
     <Compile Include="DecisionEngine\Specifications\MaximumSizeSpecification.cs" />
     <Compile Include="DecisionEngine\Specifications\RequiredIndexerFlagsSpecification.cs" />
@@ -160,6 +161,7 @@
     <Compile Include="Housekeeping\Housekeepers\CleanupOrphanedAlternativeTitles.cs" />
     <Compile Include="MediaCover\EnsureMediaCoversCommand.cs" />
     <Compile Include="MediaFiles\Commands\UpdateMovieFileQualityCommand.cs" />
+    <Compile Include="MediaFiles\FileNameHistory.cs" />
     <Compile Include="MediaFiles\MovieImport\Specifications\GrabbedReleaseQualitySpecification.cs" />
     <Compile Include="MediaFiles\MovieImport\Specifications\SameFileSpecification.cs" />
     <Compile Include="MediaFiles\Events\MovieFileUpdatedEvent.cs" />
@@ -1325,6 +1327,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Compile Include="Notifications\Telegram\TelegramError.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="MediaFiles\FilenameHistory" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
