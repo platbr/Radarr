@@ -114,6 +114,7 @@ UpdateLogs/
 *.userprefs
 */test-results/*
 src/UI/.idea/*
+src/.idea/*
 *log.txt
 node_modules/
 _output*
