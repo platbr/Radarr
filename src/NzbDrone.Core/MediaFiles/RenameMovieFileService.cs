@@ -29,7 +29,9 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IMoveMovieFiles _movieFileMover;
         private readonly IEventAggregator _eventAggregator;
         private readonly IBuildFileNames _filenameBuilder;
+        private readonly INamingConfigService _namingConfigService;
         private readonly IDiskProvider _diskProvider;
+        private readonly IKeepFileNameHistory _keepFileNameHistoryService;
         private readonly Logger _logger;
 
         public RenameMovieFileService(IMovieService movieService,
@@ -37,7 +39,9 @@ namespace NzbDrone.Core.MediaFiles
                                       IMoveMovieFiles movieFileMover,
                                       IEventAggregator eventAggregator,
                                       IBuildFileNames filenameBuilder,
+                                      INamingConfigService namingConfigService,
                                       IDiskProvider diskProvider,
+                                      IKeepFileNameHistory keepFileNameHistoryService,
                                       Logger logger)
         {
             _movieService = movieService;
@@ -45,7 +49,9 @@ namespace NzbDrone.Core.MediaFiles
             _movieFileMover = movieFileMover;
             _eventAggregator = eventAggregator;
             _filenameBuilder = filenameBuilder;
+            _namingConfigService = namingConfigService;
             _diskProvider = diskProvider;
+            _keepFileNameHistoryService = keepFileNameHistoryService;
             _logger = logger;
         }
 
@@ -100,6 +106,11 @@ namespace NzbDrone.Core.MediaFiles
                     _logger.Debug("Renamed movie file: {0}", movieFile);
 
                     _eventAggregator.PublishEvent(new MovieFileRenamedEvent(movie, movieFile, movieFilePath));
+
+                    if (_namingConfigService.GetConfig().KeepFileNameHistory)
+                    {
+                        _keepFileNameHistoryService.KeepFileNameHistory(Path.Combine(movie.Path, movieFile.RelativePath), movieFilePath);
+                    }
                 }
                 catch (SameFilenameException ex)
                 {
