@@ -1328,9 +1328,6 @@
     </Content>
     <Compile Include="Notifications\Telegram\TelegramError.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="MediaFiles\FilenameHistory" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
