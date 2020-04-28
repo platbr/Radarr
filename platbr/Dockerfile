@@ -45,9 +45,9 @@ LABEL maintainer="platbr"
 RUN mkdir -p /app/radarr/bin
 COPY --from=builder /build/_artifacts/linux-x64/netcoreapp3.1/Radarr /app/radarr/bin
 RUN apt-get update && \
-    apt-get install -y libicu66 && \
-    rm -rf /var/lib/apt/lists/*
-RUN echo "UpdateMethod=docker\nBranch=${BRANCH}\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=platbr" > /app/radarr/package_info && \
+    apt-get install -y libicu66 libmediainfo0v5 sqlite3 && \
+    rm -rf /var/lib/apt/lists/* && \
+    echo "UpdateMethod=docker\nBranch=${BRANCH}\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=platbr" > /app/radarr/package_info && \
     rm -rf /app/radarr/bin/Radarr.Update
 
 # add local files
