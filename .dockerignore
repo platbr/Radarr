@@ -2,6 +2,7 @@
 .gitignore
 .github
 .gitattributes
+platbr/build-docker.sh
 platbr/Dockerfile
 
 # Build Folders (you can keep bin if you'd like, to store dlls and pdbs)

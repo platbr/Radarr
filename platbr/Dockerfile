@@ -21,12 +21,19 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -
     apt-get install -y dotnet-sdk-3.1 && \
     rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && \
+    apt-get install -y unzip git make && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /build
 
-COPY . /build
 ARG BUILD_NUMBER="3.10.0.001"
 ARG BRANCH="platbr"
 
+# COPY platbr/dotnet-restore.tar .
+# RUN tar xf dotnet-restore.tar && dotnet restore src/Radarr.sln
+
+COPY . /build
 RUN dotnet restore src/Radarr.sln
 RUN ./build.sh
 
@@ -36,7 +43,7 @@ ARG BRANCH="platbr"
 LABEL maintainer="platbr"
 
 RUN mkdir -p /app/radarr/bin
-COPY --from=builder /build/_output_linux /app/radarr/bin
+COPY --from=builder _artifacts/linux-x64/net462/Radarr /app/radarr/bin
 
 RUN echo "UpdateMethod=docker\nBranch=${BRANCH}\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=platbr" > /app/radarr/package_info && \
     rm -rf /app/radarr/bin/Radarr.Update
