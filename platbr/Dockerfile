@@ -35,7 +35,7 @@ ARG BRANCH="platbr"
 
 COPY . /build
 RUN dotnet restore src/Radarr.sln
-RUN ./build.sh netcoreapp3.1 linux-x64 --all
+RUN ./build.sh
 
 FROM lsiobase/ubuntu:focal
 ARG BUILD_NUMBER="3.10.0.001"
@@ -44,7 +44,9 @@ LABEL maintainer="platbr"
 
 RUN mkdir -p /app/radarr/bin
 COPY --from=builder /build/_artifacts/linux-x64/netcoreapp3.1/Radarr /app/radarr/bin
-
+RUN apt-get update && \
+    apt-get install -y libicu66 && \
+    rm -rf /var/lib/apt/lists/*
 RUN echo "UpdateMethod=docker\nBranch=${BRANCH}\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=platbr" > /app/radarr/package_info && \
     rm -rf /app/radarr/bin/Radarr.Update
 
