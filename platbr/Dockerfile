@@ -35,7 +35,7 @@ ARG BRANCH="platbr"
 
 COPY . /build
 RUN dotnet restore src/Radarr.sln
-RUN ./build.sh
+RUN ./build.sh --all "netcoreapp3.1" "linux-x64"
 
 FROM lsiobase/mono:LTS
 ARG BUILD_NUMBER="3.10.0.001"
@@ -43,7 +43,7 @@ ARG BRANCH="platbr"
 LABEL maintainer="platbr"
 
 RUN mkdir -p /app/radarr/bin
-COPY --from=builder _artifacts/linux-x64/net462/Radarr /app/radarr/bin
+COPY --from=builder /build/_artifacts/linux-x64/netcoreapp3.1/Radarr /app/radarr/bin
 
 RUN echo "UpdateMethod=docker\nBranch=${BRANCH}\nPackageVersion=${BUILD_NUMBER}\nPackageAuthor=platbr" > /app/radarr/package_info && \
     rm -rf /app/radarr/bin/Radarr.Update
