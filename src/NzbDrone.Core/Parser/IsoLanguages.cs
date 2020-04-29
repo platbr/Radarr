@@ -29,6 +29,8 @@ namespace NzbDrone.Core.Parser
                                                                new IsoLanguage("tr", "tur", Language.Turkish),
                                                                new IsoLanguage("pt", "por", Language.Portuguese),
 
+                                                               new IsoLanguage(new List<string> { "pt-br", "pt-BR" }, "pob", Language.Brazilian),
+
 //                                                             new IsoLanguage("nl", "nld", Language.Flemish),
                                                                new IsoLanguage("el", "ell", Language.Greek),
                                                                new IsoLanguage("ko", "kor", Language.Korean),
@@ -43,7 +45,7 @@ namespace NzbDrone.Core.Parser
             if (isoCode.Length == 2)
             {
                 //Lookup ISO639-1 code
-                return All.SingleOrDefault(l => l.TwoLetterCode == isoCode) ?? All.SingleOrDefault(l => l.AltCodes.Contains(isoCode));
+                return All.SingleOrDefault(l => l.TwoLetterCode == isoCode);
             }
             else if (isoCode.Length == 3)
             {
@@ -51,7 +53,7 @@ namespace NzbDrone.Core.Parser
                 return All.SingleOrDefault(l => l.ThreeLetterCode == isoCode);
             }
 
-            return null;
+            return All.SingleOrDefault(l => l.AltCodes.Contains(isoCode));
         }
 
         public static IsoLanguage Get(Language language)
