@@ -33,6 +33,8 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IRecycleBinProvider _recycleBinProvider;
         private readonly IEventAggregator _eventAggregator;
         private readonly IConfigService _configService;
+        private readonly INamingConfigService _namingConfigService;
+        private readonly IKeepFileNameHistory _keepFileNameHistoryService;
         private readonly Logger _logger;
 
         public MovieFileMovingService(IMovieService movieService,
@@ -44,6 +46,8 @@ namespace NzbDrone.Core.MediaFiles
                                 IRecycleBinProvider recycleBinProvider,
                                 IEventAggregator eventAggregator,
                                 IConfigService configService,
+                                INamingConfigService namingConfigService,
+                                IKeepFileNameHistory keepFileNameHistoryService,
                                 Logger logger)
         {
             _movieService = movieService;
@@ -55,6 +59,8 @@ namespace NzbDrone.Core.MediaFiles
             _recycleBinProvider = recycleBinProvider;
             _eventAggregator = eventAggregator;
             _configService = configService;
+            _namingConfigService = namingConfigService;
+            _keepFileNameHistoryService = keepFileNameHistoryService;
             _logger = logger;
         }
 
@@ -169,6 +175,11 @@ namespace NzbDrone.Core.MediaFiles
             if (oldMoviePath != newMoviePath)
             {
                 _movieService.UpdateMovie(movie);
+            }
+
+            if (_namingConfigService.GetConfig().KeepFileNameHistory)
+            {
+                _keepFileNameHistoryService.KeepFileNameHistory(destinationFilePath, movieFilePath);
             }
 
             return movieFile;
