@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using NLog;
+using NzbDrone.Common;
 using NzbDrone.Common.Disk;
 using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
@@ -17,15 +19,17 @@ namespace NzbDrone.Core.MediaCover
 {
     public interface IMapCoversToLocal
     {
-        void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers);
+        Dictionary<string, FileInfo> GetCoverFileInfos();
+        void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers, Dictionary<string, FileInfo> fileInfos = null);
         string GetCoverPath(int movieId, MediaCoverTypes mediaCoverTypes, int? height = null);
     }
 
     public class MediaCoverService :
         IHandleAsync<MovieUpdatedEvent>,
-        IHandleAsync<MovieDeletedEvent>,
+        IHandleAsync<MoviesDeletedEvent>,
         IMapCoversToLocal
     {
+        private readonly IMediaCoverProxy _mediaCoverProxy;
         private readonly IImageResizer _resizer;
         private readonly IHttpClient _httpClient;
         private readonly IDiskProvider _diskProvider;
@@ -40,7 +44,8 @@ namespace NzbDrone.Core.MediaCover
         // So limit the number of concurrent resizing tasks
         private static SemaphoreSlim _semaphore = new SemaphoreSlim((int)Math.Ceiling(Environment.ProcessorCount / 2.0));
 
-        public MediaCoverService(IImageResizer resizer,
+        public MediaCoverService(IMediaCoverProxy mediaCoverProxy,
+                                 IImageResizer resizer,
                                  IHttpClient httpClient,
                                  IDiskProvider diskProvider,
                                  IAppFolderInfo appFolderInfo,
@@ -49,6 +54,7 @@ namespace NzbDrone.Core.MediaCover
                                  IEventAggregator eventAggregator,
                                  Logger logger)
         {
+            _mediaCoverProxy = mediaCoverProxy;
             _resizer = resizer;
             _httpClient = httpClient;
             _diskProvider = diskProvider;
@@ -67,18 +73,55 @@ namespace NzbDrone.Core.MediaCover
             return Path.Combine(GetMovieCoverPath(movieId), coverTypes.ToString().ToLower() + heightSuffix + ".jpg");
         }
 
-        public void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers)
+        public Dictionary<string, FileInfo> GetCoverFileInfos()
         {
-            foreach (var mediaCover in covers)
+            if (!_diskProvider.FolderExists(_coverRootFolder))
             {
-                var filePath = GetCoverPath(movieId, mediaCover.CoverType);
+                return new Dictionary<string, FileInfo>();
+            }
 
-                mediaCover.Url = _configFileProvider.UrlBase + @"/MediaCover/" + movieId + "/" + mediaCover.CoverType.ToString().ToLower() + ".jpg";
+            return  _diskProvider
+                    .GetFileInfos(_coverRootFolder, SearchOption.AllDirectories)
+                    .ToDictionary(x => x.FullName, PathEqualityComparer.Instance);
+        }
 
-                if (_diskProvider.FileExists(filePath))
+        public void ConvertToLocalUrls(int movieId, IEnumerable<MediaCover> covers, Dictionary<string, FileInfo> fileInfos = null)
+        {
+            if (movieId == 0)
+            {
+                // Movie isn't in Radarr yet, map via a proxy to circument referrer issues
+                foreach (var mediaCover in covers)
                 {
-                    var lastWrite = _diskProvider.FileGetLastWrite(filePath);
-                    mediaCover.Url += "?lastWrite=" + lastWrite.Ticks;
+                    mediaCover.RemoteUrl = mediaCover.Url;
+                    mediaCover.Url = _mediaCoverProxy.RegisterUrl(mediaCover.RemoteUrl);
+                }
+            }
+            else
+            {
+                foreach (var mediaCover in covers)
+                {
+                    var filePath = GetCoverPath(movieId, mediaCover.CoverType);
+
+                    mediaCover.RemoteUrl = mediaCover.Url;
+                    mediaCover.Url = _configFileProvider.UrlBase + @"/MediaCover/" + movieId + "/" + mediaCover.CoverType.ToString().ToLower() + ".jpg";
+
+                    FileInfo file;
+                    var fileExists = false;
+                    if (fileInfos != null)
+                    {
+                        fileExists = fileInfos.TryGetValue(filePath, out file);
+                    }
+                    else
+                    {
+                        file = _diskProvider.GetFileInfo(filePath);
+                        fileExists = file.Exists;
+                    }
+
+                    if (fileExists)
+                    {
+                        var lastWrite = file.LastWriteTimeUtc;
+                        mediaCover.Url += "?lastWrite=" + lastWrite.Ticks;
+                    }
                 }
             }
         }
@@ -105,6 +148,10 @@ namespace NzbDrone.Core.MediaCover
                         DownloadCover(movie, cover);
                         updated = true;
                     }
+                }
+                catch (HttpException e)
+                {
+                    _logger.Warn("Couldn't download media cover for {0}. {1}", movie, e.Message);
                 }
                 catch (WebException e)
                 {
@@ -195,12 +242,15 @@ namespace NzbDrone.Core.MediaCover
             _eventAggregator.PublishEvent(new MediaCoversUpdatedEvent(message.Movie, updated));
         }
 
-        public void HandleAsync(MovieDeletedEvent message)
+        public void HandleAsync(MoviesDeletedEvent message)
         {
-            var path = GetMovieCoverPath(message.Movie.Id);
-            if (_diskProvider.FolderExists(path))
+            foreach (var movie in message.Movies)
             {
-                _diskProvider.DeleteFolder(path, true);
+                var path = GetMovieCoverPath(movie.Id);
+                if (_diskProvider.FolderExists(path))
+                {
+                    _diskProvider.DeleteFolder(path, true);
+                }
             }
         }
     }

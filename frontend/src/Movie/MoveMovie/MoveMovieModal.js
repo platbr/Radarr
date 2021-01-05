@@ -1,12 +1,13 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { kinds, sizes } from 'Helpers/Props';
 import Button from 'Components/Link/Button';
 import Modal from 'Components/Modal/Modal';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './MoveMovieModal.css';
 
 function MoveMovieModal(props) {
@@ -40,19 +41,19 @@ function MoveMovieModal(props) {
         onModalClose={onSavePress}
       >
         <ModalHeader>
-          Move Files
+          {translate('MoveFiles')}
         </ModalHeader>
 
         <ModalBody>
           {
             destinationRootFolder ?
-              `Would you like to move the movie folders to '${destinationRootFolder}'?` :
-              `Would you like to move the movie files from '${originalPath}' to '${destinationPath}'?`
+              translate('MoveFolders1', [destinationRootFolder]) :
+              translate('MoveFolders2', [originalPath, destinationPath])
           }
           {
             destinationRootFolder ?
               <div>
-                This will also rename the movie folder per the movie folder format in settings.
+                {translate('FolderMoveRenameWarning')}
               </div> :
               null
           }
@@ -63,14 +64,14 @@ function MoveMovieModal(props) {
             className={styles.doNotMoveButton}
             onPress={onSavePress}
           >
-            No, I'll Move the Files Myself
+            {translate('NoMoveFilesSelf')}
           </Button>
 
           <Button
             kind={kinds.DANGER}
             onPress={onMoveMoviePress}
           >
-            Yes, Move the Files
+            {translate('YesMoveFiles')}
           </Button>
         </ModalFooter>
       </ModalContent>

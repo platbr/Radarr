@@ -119,8 +119,8 @@ namespace NzbDrone.Api
 
             resource.Fields = SchemaBuilder.ToSchema(definition.Settings);
 
-            resource.InfoLink = string.Format("https://github.com/Radarr/Radarr/wiki/Supported-{0}#{1}",
-                typeof(TProviderResource).Name.Replace("Resource", "s"),
+            //Radarr_Supported_{0} are custom build redirect pages; if passing a new var, create a new redirect
+            resource.InfoLink = string.Format("https://wiki.servarr.com/Radarr_Supported_{0}",
                 definition.Implementation.ToLower());
         }
 
@@ -147,7 +147,7 @@ namespace NzbDrone.Api
         {
             var defaultDefinitions = _providerFactory.GetDefaultDefinitions().OrderBy(p => p.ImplementationName).ToList();
 
-            var result = new List<TProviderResource>(defaultDefinitions.Count());
+            var result = new List<TProviderResource>(defaultDefinitions.Count);
 
             foreach (var providerDefinition in defaultDefinitions)
             {

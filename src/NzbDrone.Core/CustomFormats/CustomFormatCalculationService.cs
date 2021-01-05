@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Blacklisting;
@@ -59,10 +60,24 @@ namespace NzbDrone.Core.CustomFormats
 
         public static List<CustomFormat> ParseCustomFormat(MovieFile movieFile, List<CustomFormat> allCustomFormats)
         {
+            var sceneName = string.Empty;
+            if (movieFile.SceneName.IsNotNullOrWhiteSpace())
+            {
+                sceneName = movieFile.SceneName;
+            }
+            else if (movieFile.OriginalFilePath.IsNotNullOrWhiteSpace())
+            {
+                sceneName = movieFile.OriginalFilePath;
+            }
+            else if (movieFile.RelativePath.IsNotNullOrWhiteSpace())
+            {
+                sceneName = Path.GetFileName(movieFile.RelativePath);
+            }
+
             var info = new ParsedMovieInfo
             {
                 MovieTitle = movieFile.Movie.Title,
-                SimpleReleaseTitle = movieFile.GetSceneOrFileName().SimplifyReleaseTitle(),
+                SimpleReleaseTitle = sceneName.SimplifyReleaseTitle(),
                 Quality = movieFile.Quality,
                 Languages = movieFile.Languages,
                 ReleaseGroup = movieFile.ReleaseGroup,
@@ -92,18 +107,19 @@ namespace NzbDrone.Core.CustomFormats
 
         public List<CustomFormat> ParseCustomFormat(Blacklist blacklist)
         {
+            var movie = _movieService.GetMovie(blacklist.MovieId);
             var parsed = _parsingService.ParseMovieInfo(blacklist.SourceTitle, null);
 
             var info = new ParsedMovieInfo
             {
-                MovieTitle = blacklist.Movie.Title,
+                MovieTitle = movie.Title,
                 SimpleReleaseTitle = parsed?.SimpleReleaseTitle ?? blacklist.SourceTitle.SimplifyReleaseTitle(),
                 Quality = blacklist.Quality,
                 Languages = blacklist.Languages,
                 ReleaseGroup = parsed?.ReleaseGroup,
                 Edition = parsed?.Edition,
-                Year = blacklist.Movie.Year,
-                ImdbId = blacklist.Movie.ImdbId,
+                Year = movie.Year,
+                ImdbId = movie.ImdbId,
                 ExtraInfo = new Dictionary<string, object>
                 {
                     { "IndexerFlags", blacklist.IndexerFlags },
@@ -120,7 +136,7 @@ namespace NzbDrone.Core.CustomFormats
             var parsed = _parsingService.ParseMovieInfo(history.SourceTitle, null);
 
             Enum.TryParse(history.Data.GetValueOrDefault("indexerFlags"), true, out IndexerFlags flags);
-            int.TryParse(history.Data.GetValueOrDefault("size"), out var size);
+            long.TryParse(history.Data.GetValueOrDefault("size"), out var size);
 
             var info = new ParsedMovieInfo
             {

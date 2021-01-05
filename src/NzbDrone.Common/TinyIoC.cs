@@ -1,4 +1,4 @@
-﻿//===============================================================================
+//===============================================================================
 // TinyIoC
 //
 // An easy to use, hassle free, Inversion of Control Container for small projects
@@ -298,11 +298,11 @@ namespace TinyIoC
             }
             catch (System.IO.FileNotFoundException)
             {
-                assemblies = new Type[] { };
+                assemblies = Array.Empty<Type>();
             }
             catch (NotSupportedException)
             {
-                assemblies = new Type[] { };
+                assemblies = Array.Empty<Type>();
             }
 #if !NETFX_CORE
             catch (ReflectionTypeLoadException e)
@@ -3355,7 +3355,7 @@ namespace TinyIoC
                 //#if NETFX_CORE
                 //              MethodInfo resolveMethod = typeof(TinyIoCContainer).GetTypeInfo().GetDeclaredMethods("Resolve").First(mi => !mi.GetParameters().Any());
                 //#else
-                MethodInfo resolveMethod = typeof(TinyIoCContainer).GetMethod("Resolve", new Type[] { });
+                MethodInfo resolveMethod = typeof(TinyIoCContainer).GetMethod("Resolve", Array.Empty<Type>());
 
                 //#endif
                 resolveMethod = resolveMethod.MakeGenericMethod(returnType);
@@ -3488,7 +3488,7 @@ namespace TinyIoC
             //#if NETFX_CORE
             //          return type.GetTypeInfo().DeclaredConstructors.OrderByDescending(ctor => ctor.GetParameters().Count());
             //#else
-            return type.GetConstructors().OrderByDescending(ctor => ctor.GetParameters().Count());
+            return type.GetConstructors().OrderByDescending(ctor => ctor.GetParameters().Length);
 
             //#endif
         }
@@ -3534,9 +3534,9 @@ namespace TinyIoC
                 throw new TinyIoCResolutionException(typeToConstruct);
 
             var ctorParams = constructor.GetParameters();
-            object[] args = new object[ctorParams.Count()];
+            object[] args = new object[ctorParams.Length];
 
-            for (int parameterIndex = 0; parameterIndex < ctorParams.Count(); parameterIndex++)
+            for (int parameterIndex = 0; parameterIndex < ctorParams.Length; parameterIndex++)
             {
                 var currentParam = ctorParams[parameterIndex];
 
@@ -3648,7 +3648,7 @@ namespace TinyIoC
         private IEnumerable<TypeRegistration> GetParentRegistrationsForType(Type resolveType)
         {
             if (_Parent == null)
-                return new TypeRegistration[] { };
+                return Array.Empty<TypeRegistration>();
 
             var registrations = _Parent._RegisteredTypes.Keys.Where(tr => tr.Type == resolveType);
 
@@ -3660,7 +3660,7 @@ namespace TinyIoC
             var registrations = _RegisteredTypes.Keys.Where(tr => tr.Type == resolveType).Concat(GetParentRegistrationsForType(resolveType));
 
             if (!includeUnnamed)
-                registrations = registrations.Where(tr => tr.Name != string.Empty);
+                registrations = registrations.Where(tr => !string.IsNullOrEmpty(tr.Name));
 
             return registrations.Select(registration => this.ResolveInternal(registration, NamedParameterOverloads.Default, ResolveOptions.Default));
         }

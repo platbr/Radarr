@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { fetchLanguages } from 'Store/Actions/settingsActions';
 import { updateInteractiveImportItems } from 'Store/Actions/interactiveImportActions';
+import { fetchLanguages } from 'Store/Actions/settingsActions';
 import SelectLanguageModalContent from './SelectLanguageModalContent';
 
 function createMapStateToProps() {
@@ -18,11 +18,14 @@ function createMapStateToProps() {
         items
       } = languages;
 
+      const filterItems = ['Any', 'Original'];
+      const filteredLanguages = items.filter((lang) => !filterItems.includes(lang.name));
+
       return {
         isFetching,
         isPopulated,
         error,
-        items
+        items: filteredLanguages
       };
     }
   );
@@ -54,7 +57,9 @@ class SelectLanguageModalContentConnector extends Component {
       const language = _.find(this.props.items,
         (item) => item.id === parseInt(languageId));
 
-      languages.push(language);
+      if (language !== undefined) {
+        languages.push(language);
+      }
     });
 
     this.props.dispatchUpdateInteractiveImportItems({

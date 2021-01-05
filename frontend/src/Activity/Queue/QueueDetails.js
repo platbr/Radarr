@@ -1,8 +1,9 @@
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import Icon from 'Components/Icon';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
 function QueueDetails(props) {
   const {
@@ -10,20 +11,20 @@ function QueueDetails(props) {
     size,
     sizeleft,
     estimatedCompletionTime,
-    status: queueStatus,
+    status,
+    trackedDownloadState,
+    trackedDownloadStatus,
     errorMessage,
     progressBar
   } = props;
 
-  const status = queueStatus.toLowerCase();
-
-  const progress = (100 - sizeleft / size * 100);
+  const progress = size ? (100 - sizeleft / size * 100) : 0;
 
   if (status === 'pending') {
     return (
       <Icon
         name={icons.PENDING}
-        title={`Release will be processed ${moment(estimatedCompletionTime).fromNow()}`}
+        title={translate('ReleaseWillBeProcessedInterp', [moment(estimatedCompletionTime).fromNow()])}
       />
     );
   }
@@ -34,12 +35,40 @@ function QueueDetails(props) {
         <Icon
           name={icons.DOWNLOAD}
           kind={kinds.DANGER}
-          title={`Import failed: ${errorMessage}`}
+          title={translate('ImportFailedInterp', [errorMessage])}
         />
       );
     }
 
-    // TODO: show an icon when download is complete, but not imported yet?
+    if (trackedDownloadStatus === 'warning') {
+      return (
+        <Icon
+          name={icons.DOWNLOAD}
+          kind={kinds.WARNING}
+          title={translate('UnableToImportCheckLogs')}
+        />
+      );
+    }
+
+    if (trackedDownloadState === 'importPending') {
+      return (
+        <Icon
+          name={icons.DOWNLOAD}
+          kind={kinds.PURPLE}
+          title={`${translate('Downloaded')} - ${translate('WaitingToImport')}`}
+        />
+      );
+    }
+
+    if (trackedDownloadState === 'importing') {
+      return (
+        <Icon
+          name={icons.DOWNLOAD}
+          kind={kinds.PURPLE}
+          title={`${translate('Downloaded')} - ${translate('Importing')}`}
+        />
+      );
+    }
   }
 
   if (errorMessage) {
@@ -47,7 +76,7 @@ function QueueDetails(props) {
       <Icon
         name={icons.DOWNLOADING}
         kind={kinds.DANGER}
-        title={`Download failed: ${errorMessage}`}
+        title={translate('DownloadFailedInterp', [errorMessage])}
       />
     );
   }
@@ -57,7 +86,7 @@ function QueueDetails(props) {
       <Icon
         name={icons.DOWNLOADING}
         kind={kinds.DANGER}
-        title="Download failed: check download client for more details"
+        title={translate('DownloadFailedCheckDownloadClientForMoreDetails')}
       />
     );
   }
@@ -67,7 +96,7 @@ function QueueDetails(props) {
       <Icon
         name={icons.DOWNLOADING}
         kind={kinds.WARNING}
-        title="Download warning: check download client for more details"
+        title={translate('DownloadWarningCheckDownloadClientForMoreDetails')}
       />
     );
   }
@@ -76,7 +105,7 @@ function QueueDetails(props) {
     return (
       <Icon
         name={icons.DOWNLOADING}
-        title={`Movie is downloading - ${progress.toFixed(1)}% ${title}`}
+        title={translate('MovieIsDownloadingInterp', [progress.toFixed(1), title])}
       />
     );
   }
@@ -90,6 +119,8 @@ QueueDetails.propTypes = {
   sizeleft: PropTypes.number.isRequired,
   estimatedCompletionTime: PropTypes.string,
   status: PropTypes.string.isRequired,
+  trackedDownloadState: PropTypes.string.isRequired,
+  trackedDownloadStatus: PropTypes.string.isRequired,
   errorMessage: PropTypes.string,
   progressBar: PropTypes.node.isRequired
 };

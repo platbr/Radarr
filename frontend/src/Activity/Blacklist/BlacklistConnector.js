@@ -2,12 +2,12 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { registerPagePopulator, unregisterPagePopulator } from 'Utilities/pagePopulator';
+import * as commandNames from 'Commands/commandNames';
 import withCurrentPage from 'Components/withCurrentPage';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
 import * as blacklistActions from 'Store/Actions/blacklistActions';
 import { executeCommand } from 'Store/Actions/commandActions';
-import * as commandNames from 'Commands/commandNames';
+import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import { registerPagePopulator, unregisterPagePopulator } from 'Utilities/pagePopulator';
 import Blacklist from './Blacklist';
 
 function createMapStateToProps() {
@@ -89,6 +89,10 @@ class BlacklistConnector extends Component {
     this.props.gotoBlacklistPage({ page });
   }
 
+  onRemoveSelected = (ids) => {
+    this.props.removeBlacklistItems({ ids });
+  }
+
   onSortPress = (sortKey) => {
     this.props.setBlacklistSort({ sortKey });
   }
@@ -124,6 +128,7 @@ class BlacklistConnector extends Component {
         onNextPagePress={this.onNextPagePress}
         onLastPagePress={this.onLastPagePress}
         onPageSelect={this.onPageSelect}
+        onRemoveSelected={this.onRemoveSelected}
         onSortPress={this.onSortPress}
         onTableOptionChange={this.onTableOptionChange}
         onClearBlacklistPress={this.onClearBlacklistPress}
@@ -143,6 +148,7 @@ BlacklistConnector.propTypes = {
   gotoBlacklistNextPage: PropTypes.func.isRequired,
   gotoBlacklistLastPage: PropTypes.func.isRequired,
   gotoBlacklistPage: PropTypes.func.isRequired,
+  removeBlacklistItems: PropTypes.func.isRequired,
   setBlacklistSort: PropTypes.func.isRequired,
   setBlacklistTableOption: PropTypes.func.isRequired,
   clearBlacklist: PropTypes.func.isRequired,

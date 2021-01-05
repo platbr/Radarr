@@ -171,28 +171,14 @@ namespace NzbDrone.Core.Test.MediaFiles
         }
 
         [Test]
-        [Ignore("Series")]
-        public void should_not_use_nzb_title_as_scene_name_if_full_season()
-        {
-            GivenNewDownload();
-            _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "malcolm.in.the.middle.s02e23.dvdrip.xvid-ingot.mkv");
-            _downloadClientItem.Title = "malcolm.in.the.middle.s02.dvdrip.xvid-ingot";
-
-            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, _downloadClientItem);
-
-            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.SceneName == "malcolm.in.the.middle.s02e23.dvdrip.xvid-ingot")));
-        }
-
-        [Test]
-        [Ignore("Series")]
         public void should_use_file_name_as_scenename_only_if_it_looks_like_scenename()
         {
             GivenNewDownload();
-            _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "malcolm.in.the.middle.s02e23.dvdrip.xvid-ingot.mkv");
+            _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "movie.title.2018.dvdrip.xvid-ingot.mkv");
 
             Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
 
-            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.SceneName == "malcolm.in.the.middle.s02e23.dvdrip.xvid-ingot")));
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.SceneName == "movie.title.2018.dvdrip.xvid-ingot")));
         }
 
         [Test]
@@ -200,6 +186,36 @@ namespace NzbDrone.Core.Test.MediaFiles
         {
             GivenNewDownload();
             _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "aaaaa.mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.SceneName == null)));
+        }
+
+        [Test]
+        public void should_use_folder_name_as_scenename_only_if_it_looks_like_scenename()
+        {
+            GivenNewDownload();
+            _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "aaaaa.mkv");
+            _approvedDecisions.First().LocalMovie.FolderMovieInfo = new ParsedMovieInfo
+            {
+                ReleaseTitle = "movie.title.2018.dvdrip.xvid-ingot"
+            };
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.SceneName == "movie.title.2018.dvdrip.xvid-ingot")));
+        }
+
+        [Test]
+        public void should_not_use_folder_name_as_scenename_if_it_doesnt_looks_like_scenename()
+        {
+            GivenNewDownload();
+            _approvedDecisions.First().LocalMovie.Path = Path.Combine(_downloadClientItem.OutputPath.ToString(), "aaaaa.mkv");
+            _approvedDecisions.First().LocalMovie.FolderMovieInfo = new ParsedMovieInfo
+            {
+                ReleaseTitle = "aaaaa.mkv"
+            };
 
             Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true);
 
@@ -301,18 +317,99 @@ namespace NzbDrone.Core.Test.MediaFiles
         }
 
         [Test]
-        public void should_use_folder_info_release_title_to_find_relative_path()
+        public void should_use_folder_info_original_title_to_find_relative_path()
         {
-            var name = "Series.Title.S01E01.720p.HDTV.x264-Sonarr";
-            var outputPath = Path.Combine(@"C:\Test\Unsorted\TV\".AsOsAgnostic(), name);
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = Path.Combine(@"C:\Test\Unsorted\movies\".AsOsAgnostic(), name);
             var localEpisode = _approvedDecisions.First().LocalMovie;
 
-            localEpisode.FolderMovieInfo = new ParsedMovieInfo { SimpleReleaseTitle = name };
+            localEpisode.FolderMovieInfo = new ParsedMovieInfo { OriginalTitle = name };
             localEpisode.Path = Path.Combine(outputPath, "subfolder", name + ".mkv");
 
             Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, null);
 
             Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"{name}\\subfolder\\{name}.mkv".AsOsAgnostic())));
+        }
+
+        [Test]
+        public void should_get_relative_path_when_there_is_no_grandparent_windows()
+        {
+            WindowsOnly();
+
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = @"C:\".AsOsAgnostic();
+            var localMovie = _approvedDecisions.First().LocalMovie;
+            localMovie.FolderMovieInfo = new ParsedMovieInfo { ReleaseTitle = name };
+            localMovie.Path = Path.Combine(outputPath, name + ".mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, null);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"{name}.mkv".AsOsAgnostic())));
+        }
+
+        [Test]
+        public void should_get_relative_path_when_there_is_no_grandparent_mono()
+        {
+            MonoOnly();
+
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = "/";
+            var localMovie = _approvedDecisions.First().LocalMovie;
+
+            localMovie.FolderMovieInfo = new ParsedMovieInfo { ReleaseTitle = name };
+            localMovie.Path = Path.Combine(outputPath, name + ".mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, null);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"{name}.mkv".AsOsAgnostic())));
+        }
+
+        [Test]
+        public void should_get_relative_path_when_there_is_no_grandparent_for_UNC_path()
+        {
+            WindowsOnly();
+
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = @"\\server\share";
+            var localMovie = _approvedDecisions.First().LocalMovie;
+
+            localMovie.FolderMovieInfo = new ParsedMovieInfo { ReleaseTitle = name };
+            localMovie.Path = Path.Combine(outputPath, name + ".mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, null);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"{name}.mkv")));
+        }
+
+        [Test]
+        public void should_use_folder_info_original_title_to_find_relative_path_when_file_is_not_in_download_client_item_output_directory()
+        {
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = Path.Combine(@"C:\Test\Unsorted\movie\".AsOsAgnostic(), name);
+            var localMovie = _approvedDecisions.First().LocalMovie;
+
+            _downloadClientItem.OutputPath = new OsPath(Path.Combine(@"C:\Test\Unsorted\movie-Other\".AsOsAgnostic(), name));
+            localMovie.FolderMovieInfo = new ParsedMovieInfo { ReleaseTitle = name };
+            localMovie.Path = Path.Combine(outputPath, "subfolder", name + ".mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, _downloadClientItem);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"subfolder\\{name}.mkv".AsOsAgnostic())));
+        }
+
+        [Test]
+        public void should_use_folder_info_original_title_to_find_relative_path_when_download_client_item_has_an_empty_output_path()
+        {
+            var name = "Transformers.2007.720p.BluRay.x264-Radarr";
+            var outputPath = Path.Combine(@"C:\Test\Unsorted\movies\".AsOsAgnostic(), name);
+            var localMovie = _approvedDecisions.First().LocalMovie;
+
+            localMovie.FolderMovieInfo = new ParsedMovieInfo { ReleaseTitle = name };
+            localMovie.Path = Path.Combine(outputPath, "subfolder", name + ".mkv");
+
+            Subject.Import(new List<ImportDecision> { _approvedDecisions.First() }, true, _downloadClientItem);
+
+            Mocker.GetMock<IMediaFileService>().Verify(v => v.Add(It.Is<MovieFile>(c => c.OriginalFilePath == $"subfolder\\{name}.mkv".AsOsAgnostic())));
         }
     }
 }

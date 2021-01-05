@@ -166,12 +166,20 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         public override DownloadClientInfo GetStatus()
         {
-            var config = _proxy.GetConfig(Settings);
-            var destDir = config.DownloadDir;
-
-            if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+            string destDir;
+            if (Settings.MovieDirectory.IsNotNullOrWhiteSpace())
             {
-                destDir = string.Format("{0}/.{1}", destDir, Settings.MovieCategory);
+                destDir = Settings.MovieDirectory;
+            }
+            else
+            {
+                var config = _proxy.GetConfig(Settings);
+                destDir = config.DownloadDir;
+
+                if (Settings.MovieCategory.IsNotNullOrWhiteSpace())
+                {
+                    destDir = string.Format("{0}/{1}", destDir, Settings.MovieCategory);
+                }
             }
 
             return new DownloadClientInfo
@@ -226,7 +234,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
 
         protected virtual OsPath GetOutputPath(OsPath outputPath, TransmissionTorrent torrent)
         {
-            return outputPath + torrent.Name;
+            return outputPath + torrent.Name.Replace(":", "_");
         }
 
         protected string GetDownloadDirectory()
@@ -265,14 +273,15 @@ namespace NzbDrone.Core.Download.Clients.Transmission
             {
                 _logger.Error(ex, ex.Message);
 
-                return new NzbDroneValidationFailure("Host", "Unable to connect")
-                {
-                    DetailedDescription = "Please verify the hostname and port."
-                };
+                return new NzbDroneValidationFailure("Host", "Unable to connect to Transmission")
+                       {
+                           DetailedDescription = ex.Message
+                       };
             }
             catch (Exception ex)
             {
                 _logger.Error(ex, "Failed to test");
+
                 return new NzbDroneValidationFailure(string.Empty, "Unknown exception: " + ex.Message);
             }
         }

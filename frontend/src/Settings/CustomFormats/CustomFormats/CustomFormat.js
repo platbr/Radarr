@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import Card from 'Components/Card';
 import Label from 'Components/Label';
 import IconButton from 'Components/Link/IconButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import EditCustomFormatModalConnector from './EditCustomFormatModalConnector';
+import ExportCustomFormatModal from './ExportCustomFormatModal';
 import styles from './CustomFormat.css';
 
 class CustomFormat extends Component {
@@ -18,6 +20,7 @@ class CustomFormat extends Component {
 
     this.state = {
       isEditCustomFormatModalOpen: false,
+      isExportCustomFormatModalOpen: false,
       isDeleteCustomFormatModalOpen: false
     };
   }
@@ -31,6 +34,14 @@ class CustomFormat extends Component {
 
   onEditCustomFormatModalClose = () => {
     this.setState({ isEditCustomFormatModalOpen: false });
+  }
+
+  onExportCustomFormatPress = () => {
+    this.setState({ isExportCustomFormatModalOpen: true });
+  }
+
+  onExportCustomFormatModalClose = () => {
+    this.setState({ isExportCustomFormatModalOpen: false });
   }
 
   onDeleteCustomFormatPress = () => {
@@ -79,12 +90,21 @@ class CustomFormat extends Component {
             {name}
           </div>
 
-          <IconButton
-            className={styles.cloneButton}
-            title="Clone Profile"
-            name={icons.CLONE}
-            onPress={this.onCloneCustomFormatPress}
-          />
+          <div>
+            <IconButton
+              className={styles.cloneButton}
+              title={translate('CloneCustomFormat')}
+              name={icons.CLONE}
+              onPress={this.onCloneCustomFormatPress}
+            />
+
+            <IconButton
+              className={styles.cloneButton}
+              title={translate('ExportCustomFormat')}
+              name={icons.EXPORT}
+              onPress={this.onExportCustomFormatPress}
+            />
+          </div>
         </div>
 
         <div>
@@ -121,18 +141,24 @@ class CustomFormat extends Component {
           onDeleteCustomFormatPress={this.onDeleteCustomFormatPress}
         />
 
+        <ExportCustomFormatModal
+          id={id}
+          isOpen={this.state.isExportCustomFormatModalOpen}
+          onModalClose={this.onExportCustomFormatModalClose}
+        />
+
         <ConfirmModal
           isOpen={this.state.isDeleteCustomFormatModalOpen}
           kind={kinds.DANGER}
-          title="Delete Custom Format"
+          title={translate('DeleteCustomFormat')}
           message={
             <div>
               <div>
-                Are you sure you want to delete custom format '{name}'?
+                {translate('AreYouSureYouWantToDeleteFormat', [name])}
               </div>
             </div>
           }
-          confirmLabel="Delete"
+          confirmLabel={translate('Delete')}
           isSpinning={isDeleting}
           onConfirm={this.onConfirmDeleteCustomFormat}
           onCancel={this.onDeleteCustomFormatModalClose}

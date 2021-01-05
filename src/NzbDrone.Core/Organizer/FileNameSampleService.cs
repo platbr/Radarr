@@ -33,7 +33,7 @@ namespace NzbDrone.Core.Organizer
                 VideoColourPrimaries = "BT.2020",
                 VideoTransferCharacteristics = "HLG",
                 AudioFormat = "DTS",
-                AudioChannels = 6,
+                AudioChannelsContainer = 6,
                 AudioChannelPositions = "3/2/0.1",
                 AudioLanguages = "German",
                 Subtitles = "English/German"
@@ -52,6 +52,9 @@ namespace NzbDrone.Core.Organizer
             _movie = new Movie
             {
                 Title = "The Movie: Title",
+                OriginalTitle = "The Original Movie Title",
+                Collection = new MovieCollection { Name = "The Movie Collection", TmdbId = 123654 },
+                Certification = "R",
                 Year = 2010,
                 ImdbId = "tt0066921",
                 TmdbId = 345691,

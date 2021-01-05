@@ -9,11 +9,31 @@ function findMatchingItems(ids, items) {
   });
 }
 
-function createMatchingMovieSelector() {
+function createUnorderedMatchingMoviesSelector() {
   return createSelector(
     (state, { movieIds }) => movieIds,
     createAllMoviesSelector(),
     findMatchingItems
+  );
+}
+
+function createMatchingMoviesSelector() {
+  return createSelector(
+    createUnorderedMatchingMoviesSelector(),
+    (movies) => {
+      return movies.sort((movieA, movieB) => {
+        const sortTitleA = movieA.sortTitle;
+        const sortTitleB = movieB.sortTitle;
+
+        if (sortTitleA > sortTitleB) {
+          return 1;
+        } else if (sortTitleA < sortTitleB) {
+          return -1;
+        }
+
+        return 0;
+      });
+    }
   );
 }
 
@@ -41,28 +61,28 @@ function createMatchingRestrictionsSelector() {
   );
 }
 
-function createMatchingNetImportsSelector() {
+function createMatchingImportListsSelector() {
   return createSelector(
-    (state, { netImportIds }) => netImportIds,
-    (state) => state.settings.netImports.items,
+    (state, { importListIds }) => importListIds,
+    (state) => state.settings.importLists.items,
     findMatchingItems
   );
 }
 
 function createMapStateToProps() {
   return createSelector(
-    createMatchingMovieSelector(),
+    createMatchingMoviesSelector(),
     createMatchingDelayProfilesSelector(),
     createMatchingNotificationsSelector(),
     createMatchingRestrictionsSelector(),
-    createMatchingNetImportsSelector(),
-    (movies, delayProfiles, notifications, restrictions, netImports) => {
+    createMatchingImportListsSelector(),
+    (movies, delayProfiles, notifications, restrictions, importLists) => {
       return {
         movies,
         delayProfiles,
         notifications,
         restrictions,
-        netImports
+        importLists
       };
     }
   );

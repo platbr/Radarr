@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds } from 'Helpers/Props';
 import Card from 'Components/Card';
 import Label from 'Components/Label';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
+import { kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import EditNotificationModalConnector from './EditNotificationModalConnector';
 import styles from './Notification.css';
 
@@ -58,11 +59,13 @@ class Notification extends Component {
       onDownload,
       onUpgrade,
       onRename,
+      onDelete,
       onHealthIssue,
       supportsOnGrab,
       supportsOnDownload,
       supportsOnUpgrade,
       supportsOnRename,
+      supportsOnDelete,
       supportsOnHealthIssue
     } = this.props;
 
@@ -79,45 +82,52 @@ class Notification extends Component {
         {
           supportsOnGrab && onGrab &&
             <Label kind={kinds.SUCCESS}>
-              On Grab
+              {translate('OnGrab')}
+            </Label>
+        }
+
+        {
+          supportsOnDelete && onDelete &&
+            <Label kind={kinds.SUCCESS}>
+              {translate('OnDelete')}
             </Label>
         }
 
         {
           supportsOnDownload && onDownload &&
             <Label kind={kinds.SUCCESS}>
-              On Import
+              {translate('OnImport')}
             </Label>
         }
 
         {
           supportsOnUpgrade && onDownload && onUpgrade &&
             <Label kind={kinds.SUCCESS}>
-              On Upgrade
+              {translate('OnUpgrade')}
             </Label>
         }
 
         {
           supportsOnRename && onRename &&
             <Label kind={kinds.SUCCESS}>
-              On Rename
+              {translate('OnRename')}
             </Label>
         }
 
         {
           supportsOnHealthIssue && onHealthIssue &&
             <Label kind={kinds.SUCCESS}>
-              On Health Issue
+              {translate('OnHealthIssue')}
             </Label>
         }
 
         {
-          !onGrab && !onDownload && !onRename && !onHealthIssue &&
+          !onGrab && !onDownload && !onRename && !onHealthIssue && !onDelete &&
             <Label
               kind={kinds.DISABLED}
               outline={true}
             >
-              Disabled
+              {translate('Disabled')}
             </Label>
         }
 
@@ -131,9 +141,9 @@ class Notification extends Component {
         <ConfirmModal
           isOpen={this.state.isDeleteNotificationModalOpen}
           kind={kinds.DANGER}
-          title="Delete Notification"
-          message={`Are you sure you want to delete the notification '${name}'?`}
-          confirmLabel="Delete"
+          title={translate('DeleteNotification')}
+          message={translate('DeleteNotificationMessageText', [name])}
+          confirmLabel={translate('Delete')}
           onConfirm={this.onConfirmDeleteNotification}
           onCancel={this.onDeleteNotificationModalClose}
         />
@@ -149,9 +159,11 @@ Notification.propTypes = {
   onDownload: PropTypes.bool.isRequired,
   onUpgrade: PropTypes.bool.isRequired,
   onRename: PropTypes.bool.isRequired,
+  onDelete: PropTypes.bool.isRequired,
   onHealthIssue: PropTypes.bool.isRequired,
   supportsOnGrab: PropTypes.bool.isRequired,
   supportsOnDownload: PropTypes.bool.isRequired,
+  supportsOnDelete: PropTypes.bool.isRequired,
   supportsOnUpgrade: PropTypes.bool.isRequired,
   supportsOnRename: PropTypes.bool.isRequired,
   supportsOnHealthIssue: PropTypes.bool.isRequired,

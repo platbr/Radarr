@@ -1,11 +1,10 @@
-import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import selectSettings from 'Store/Selectors/selectSettings';
+import { saveMovie, setMovieValue } from 'Store/Actions/movieActions';
 import createMovieSelector from 'Store/Selectors/createMovieSelector';
-import { setMovieValue, saveMovie } from 'Store/Actions/movieActions';
+import selectSettings from 'Store/Selectors/selectSettings';
 import EditMovieModalContent from './EditMovieModalContent';
 
 function createIsPathChangingSelector() {
@@ -36,13 +35,13 @@ function createMapStateToProps() {
         pendingChanges
       } = moviesState;
 
-      const movieSettings = _.pick(movie, [
-        'monitored',
-        'qualityProfileId',
-        'minimumAvailability',
-        'path',
-        'tags'
-      ]);
+      const movieSettings = {
+        monitored: movie.monitored,
+        qualityProfileId: movie.qualityProfileId,
+        minimumAvailability: movie.minimumAvailability,
+        path: movie.path,
+        tags: movie.tags
+      };
 
       const settings = selectSettings(movieSettings, pendingChanges, saveError);
 

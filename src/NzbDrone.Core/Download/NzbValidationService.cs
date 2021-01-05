@@ -27,6 +27,14 @@ namespace NzbDrone.Core.Download
                     throw new InvalidNzbException("Invalid NZB: No Root element [{0}]", filename);
                 }
 
+                // nZEDb has an bug in their error reporting code spitting out invalid http status codes
+                if (nzb.Name.LocalName.Equals("error") &&
+                    nzb.TryGetAttributeValue("code", out var code) &&
+                    nzb.TryGetAttributeValue("description", out var description))
+                {
+                    throw new InvalidNzbException("Invalid NZB: Contains indexer error: {0} - {1}", code, description);
+                }
+
                 if (!nzb.Name.LocalName.Equals("nzb"))
                 {
                     throw new InvalidNzbException("Invalid NZB: Unexpected root element. Expected 'nzb' found '{0}' [{1}]", nzb.Name.LocalName, filename);

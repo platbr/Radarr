@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Grid, WindowScroller } from 'react-virtualized';
-import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
-import hasDifferentItemsOrOrder from 'Utilities/Object/hasDifferentItemsOrOrder';
-import dimensions from 'Styles/Variables/dimensions';
 import Measure from 'Components/Measure';
 import MovieIndexItemConnector from 'Movie/Index/MovieIndexItemConnector';
+import dimensions from 'Styles/Variables/dimensions';
+import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
+import hasDifferentItemsOrOrder from 'Utilities/Object/hasDifferentItemsOrOrder';
 import MovieIndexOverview from './MovieIndexOverview';
 import styles from './MovieIndexOverviews.css';
 
@@ -72,7 +72,8 @@ class MovieIndexOverviews extends Component {
       sortKey,
       overviewOptions,
       jumpToCharacter,
-      isMovieEditorActive
+      isMovieEditorActive,
+      isSmallScreen
     } = this.props;
 
     const {
@@ -82,13 +83,15 @@ class MovieIndexOverviews extends Component {
 
     if (prevProps.sortKey !== sortKey ||
         prevProps.overviewOptions !== overviewOptions) {
-      this.calculateGrid();
+      this.calculateGrid(this.state.width, isSmallScreen);
     }
 
-    if (this._grid &&
+    if (
+      this._grid &&
         (prevState.width !== width ||
             prevState.rowHeight !== rowHeight ||
             hasDifferentItemsOrOrder(prevProps.items, items) ||
+            prevProps.overviewOptions !== overviewOptions ||
             prevProps.isMovieEditorActive !== isMovieEditorActive)) {
       // recomputeGridSize also forces Grid to discard its cache of rendered cells
       this._grid.recomputeGridSize();

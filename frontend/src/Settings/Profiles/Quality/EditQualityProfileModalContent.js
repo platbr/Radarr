@@ -1,24 +1,36 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, kinds, sizes } from 'Helpers/Props';
-import dimensions from 'Styles/Variables/dimensions';
+import Form from 'Components/Form/Form';
+import FormGroup from 'Components/Form/FormGroup';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
 import Button from 'Components/Link/Button';
 import SpinnerErrorButton from 'Components/Link/SpinnerErrorButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Measure from 'Components/Measure';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
-import Form from 'Components/Form/Form';
-import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
-import FormInputGroup from 'Components/Form/FormInputGroup';
-import QualityProfileItems from './QualityProfileItems';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import dimensions from 'Styles/Variables/dimensions';
+import translate from 'Utilities/String/translate';
 import QualityProfileFormatItems from './QualityProfileFormatItems';
+import QualityProfileItems from './QualityProfileItems';
 import styles from './EditQualityProfileModalContent.css';
 
 const MODAL_BODY_PADDING = parseInt(dimensions.modalBodyPadding);
+
+function getCustomFormatRender(formatItems, otherProps) {
+  return (
+    <QualityProfileFormatItems
+      profileFormatItems={formatItems.value}
+      errors={formatItems.errors}
+      warnings={formatItems.warnings}
+      {...otherProps}
+    />
+  );
+}
 
 class EditQualityProfileModalContent extends Component {
 
@@ -128,7 +140,7 @@ class EditQualityProfileModalContent extends Component {
           onMeasure={this.onHeaderMeasure}
         >
           <ModalHeader>
-            {id ? 'Edit Quality Profile' : 'Add Quality Profile'}
+            {id ? translate('EditQualityProfile') : translate('AddQualityProfile')}
           </ModalHeader>
         </Measure>
 
@@ -145,7 +157,9 @@ class EditQualityProfileModalContent extends Component {
 
               {
                 !isFetching && !!error &&
-                  <div>Unable to add a new quality profile, please try again.</div>
+                  <div>
+                    {translate('UnableToAddANewQualityProfilePleaseTryAgain')}
+                  </div>
               }
 
               {
@@ -157,7 +171,7 @@ class EditQualityProfileModalContent extends Component {
                       <div className={styles.formGroupWrapper}>
                         <FormGroup size={sizes.EXTRA_SMALL}>
                           <FormLabel size={sizes.SMALL}>
-                            Name
+                            {translate('Name')}
                           </FormLabel>
 
                           <FormInputGroup
@@ -170,14 +184,14 @@ class EditQualityProfileModalContent extends Component {
 
                         <FormGroup size={sizes.EXTRA_SMALL}>
                           <FormLabel size={sizes.SMALL}>
-                            Upgrades Allowed
+                            {translate('UpgradesAllowed')}
                           </FormLabel>
 
                           <FormInputGroup
                             type={inputTypes.CHECK}
                             name="upgradeAllowed"
                             {...upgradeAllowed}
-                            helpText="If disabled qualities will not be upgraded"
+                            helpText={translate('UpgradeAllowedHelpText')}
                             onChange={onInputChange}
                           />
                         </FormGroup>
@@ -186,7 +200,7 @@ class EditQualityProfileModalContent extends Component {
                           upgradeAllowed.value &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Upgrade Until Quality
+                                {translate('UpgradeUntilQuality')}
                               </FormLabel>
 
                               <FormInputGroup
@@ -194,7 +208,7 @@ class EditQualityProfileModalContent extends Component {
                                 name="cutoff"
                                 {...cutoff}
                                 values={qualities}
-                                helpText="Once this quality is reached Radarr will no longer download movies"
+                                helpText={translate('CutoffHelpText')}
                                 onChange={onCutoffChange}
                               />
                             </FormGroup>
@@ -204,14 +218,14 @@ class EditQualityProfileModalContent extends Component {
                           formatItems.value.length > 0 &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Minimum Custom Format Score
+                                {translate('MinimumCustomFormatScore')}
                               </FormLabel>
 
                               <FormInputGroup
                                 type={inputTypes.NUMBER}
                                 name="minFormatScore"
                                 {...minFormatScore}
-                                helpText="Minimum custom format score allowed to download"
+                                helpText={translate('MinFormatScoreHelpText')}
                                 onChange={onInputChange}
                               />
                             </FormGroup>
@@ -221,14 +235,14 @@ class EditQualityProfileModalContent extends Component {
                           upgradeAllowed.value && formatItems.value.length > 0 &&
                             <FormGroup size={sizes.EXTRA_SMALL}>
                               <FormLabel size={sizes.SMALL}>
-                                Upgrade Until Custom Format Score
+                                {translate('UpgradeUntilCustomFormatScore')}
                               </FormLabel>
 
                               <FormInputGroup
                                 type={inputTypes.NUMBER}
                                 name="cutoffFormatScore"
                                 {...cutoffFormatScore}
-                                helpText="Once this custom format score is reached Radarr will no longer download movies"
+                                helpText={translate('CutoffFormatScoreHelpText')}
                                 onChange={onInputChange}
                               />
                             </FormGroup>
@@ -236,7 +250,7 @@ class EditQualityProfileModalContent extends Component {
 
                         <FormGroup size={sizes.EXTRA_SMALL}>
                           <FormLabel size={sizes.SMALL}>
-                            Language
+                            {translate('Language')}
                           </FormLabel>
 
                           <FormInputGroup
@@ -244,10 +258,14 @@ class EditQualityProfileModalContent extends Component {
                             name="language"
                             values={languages}
                             value={languageId}
-                            helpText="Language for Releases"
+                            helpText={translate('LanguageHelpText')}
                             onChange={onLanguageChange}
                           />
                         </FormGroup>
+
+                        <div className={styles.formatItemLarge}>
+                          {getCustomFormatRender(formatItems, ...otherProps)}
+                        </div>
                       </div>
 
                       <div className={styles.formGroupWrapper}>
@@ -260,13 +278,8 @@ class EditQualityProfileModalContent extends Component {
                         />
                       </div>
 
-                      <div className={styles.formGroupWrapper}>
-                        <QualityProfileFormatItems
-                          profileFormatItems={formatItems.value}
-                          errors={formatItems.errors}
-                          warnings={formatItems.warnings}
-                          {...otherProps}
-                        />
+                      <div className={styles.formatItemSmall}>
+                        {getCustomFormatRender(formatItems, otherProps)}
                       </div>
                     </div>
                   </Form>
@@ -288,7 +301,7 @@ class EditQualityProfileModalContent extends Component {
                   className={styles.deleteButtonContainer}
                   title={
                     isInUse ?
-                      'Can\'t delete a quality profile that is attached to a movie' :
+                      translate('QualityProfileInUse') :
                       undefined
                   }
                 >
@@ -297,7 +310,7 @@ class EditQualityProfileModalContent extends Component {
                     isDisabled={isInUse}
                     onPress={onDeleteQualityProfilePress}
                   >
-                    Delete
+                    {translate('Delete')}
                   </Button>
                 </div> :
                 null
@@ -306,7 +319,7 @@ class EditQualityProfileModalContent extends Component {
             <Button
               onPress={onModalClose}
             >
-              Cancel
+              {translate('Cancel')}
             </Button>
 
             <SpinnerErrorButton
@@ -314,7 +327,7 @@ class EditQualityProfileModalContent extends Component {
               error={saveError}
               onPress={onSavePress}
             >
-              Save
+              {translate('Save')}
             </SpinnerErrorButton>
           </ModalFooter>
         </Measure>

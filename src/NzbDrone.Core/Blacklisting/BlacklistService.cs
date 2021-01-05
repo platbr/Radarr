@@ -16,14 +16,16 @@ namespace NzbDrone.Core.Blacklisting
     {
         bool Blacklisted(int movieId, ReleaseInfo release);
         PagingSpec<Blacklist> Paged(PagingSpec<Blacklist> pagingSpec);
+        List<Blacklist> GetByMovieId(int movieId);
         void Delete(int id);
+        void Delete(List<int> ids);
     }
 
     public class BlacklistService : IBlacklistService,
 
                                     IExecute<ClearBlacklistCommand>,
                                     IHandle<DownloadFailedEvent>,
-                                    IHandleAsync<MovieDeletedEvent>
+                                    IHandleAsync<MoviesDeletedEvent>
     {
         private readonly IBlacklistRepository _blacklistRepository;
 
@@ -65,9 +67,19 @@ namespace NzbDrone.Core.Blacklisting
             return _blacklistRepository.GetPaged(pagingSpec);
         }
 
+        public List<Blacklist> GetByMovieId(int movieId)
+        {
+            return _blacklistRepository.BlacklistedByMovie(movieId);
+        }
+
         public void Delete(int id)
         {
             _blacklistRepository.Delete(id);
+        }
+
+        public void Delete(List<int> ids)
+        {
+            _blacklistRepository.DeleteMany(ids);
         }
 
         private bool SameNzb(Blacklist item, ReleaseInfo release)
@@ -160,11 +172,9 @@ namespace NzbDrone.Core.Blacklisting
             _blacklistRepository.Insert(blacklist);
         }
 
-        public void HandleAsync(MovieDeletedEvent message)
+        public void HandleAsync(MoviesDeletedEvent message)
         {
-            var blacklisted = _blacklistRepository.BlacklistedByMovie(message.Movie.Id);
-
-            _blacklistRepository.DeleteMany(blacklisted);
+            _blacklistRepository.DeleteForMovies(message.Movies.Select(m => m.Id).ToList());
         }
     }
 }

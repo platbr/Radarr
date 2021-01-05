@@ -21,7 +21,7 @@ namespace NzbDrone.Core.Notifications.Gotify
         {
             try
             {
-                var request = new HttpRequestBuilder(settings.Server).Post()
+                var request = new HttpRequestBuilder(settings.Server).Resource("message").Post()
                 .AddQueryParam("token", settings.AppToken)
                 .AddFormParameter("title", title)
                 .AddFormParameter("message", message)
@@ -37,7 +37,7 @@ namespace NzbDrone.Core.Notifications.Gotify
                     throw new GotifyException("Unauthorized - AuthToken is invalid");
                 }
 
-                throw new GotifyException("Unable to connect to Gotify. Status Code: {0}", ex);
+                throw new GotifyException("Unable to connect to Gotify. Status Code: {0}", ex.Response.StatusCode);
             }
         }
     }

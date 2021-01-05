@@ -178,9 +178,9 @@ namespace NzbDrone.Core.Configuration
         public bool AnalyticsEnabled => GetValueBoolean("AnalyticsEnabled", true, persist: false);
 
         // TODO: Change back to "master" for the first stable release.
-        public string Branch => GetValue("Branch", "aphrodite").ToLowerInvariant();
+        public string Branch => GetValue("Branch", "master").ToLowerInvariant();
 
-        public string LogLevel => GetValue("LogLevel", "info");
+        public string LogLevel => GetValue("LogLevel", "info").ToLowerInvariant();
         public string ConsoleLogLevel => GetValue("ConsoleLogLevel", string.Empty, persist: false);
         public bool LogSql => GetValueBoolean("LogSql", false, persist: false);
         public int LogRotate => GetValueInt("LogRotate", 50, persist: false);
@@ -237,7 +237,7 @@ namespace NzbDrone.Core.Configuration
 
                     var valueHolder = parentContainer.Descendants(key).ToList();
 
-                    if (valueHolder.Count() == 1)
+                    if (valueHolder.Count == 1)
                     {
                         return valueHolder.First().Value.Trim();
                     }

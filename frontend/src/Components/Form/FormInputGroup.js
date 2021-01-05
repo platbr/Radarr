@@ -1,26 +1,31 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
 import Link from 'Components/Link/Link';
+import { inputTypes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import AutoCompleteInput from './AutoCompleteInput';
 import AvailabilitySelectInput from './AvailabilitySelectInput';
 import CaptchaInputConnector from './CaptchaInputConnector';
 import CheckInput from './CheckInput';
 import DeviceInputConnector from './DeviceInputConnector';
+import EnhancedSelectInput from './EnhancedSelectInput';
+import EnhancedSelectInputConnector from './EnhancedSelectInputConnector';
+import FormInputHelpText from './FormInputHelpText';
+import IndexerFlagsSelectInputConnector from './IndexerFlagsSelectInputConnector';
 import KeyValueListInput from './KeyValueListInput';
+import MovieMonitoredSelectInput from './MovieMonitoredSelectInput';
 import NumberInput from './NumberInput';
 import OAuthInputConnector from './OAuthInputConnector';
 import PasswordInput from './PasswordInput';
 import PathInputConnector from './PathInputConnector';
 import QualityProfileSelectInputConnector from './QualityProfileSelectInputConnector';
 import RootFolderSelectInputConnector from './RootFolderSelectInputConnector';
-import MovieMonitoredSelectInput from './MovieMonitoredSelectInput';
-import EnhancedSelectInput from './EnhancedSelectInput';
 import TagInputConnector from './TagInputConnector';
 import TagSelectInputConnector from './TagSelectInputConnector';
-import TextTagInputConnector from './TextTagInputConnector';
+import TextArea from './TextArea';
 import TextInput from './TextInput';
-import FormInputHelpText from './FormInputHelpText';
+import TextTagInputConnector from './TextTagInputConnector';
+import UMaskInput from './UMaskInput';
 import styles from './FormInputGroup.css';
 
 function getComponent(type) {
@@ -64,17 +69,28 @@ function getComponent(type) {
     case inputTypes.ROOT_FOLDER_SELECT:
       return RootFolderSelectInputConnector;
 
+    case inputTypes.INDEXER_FLAGS_SELECT:
+      return IndexerFlagsSelectInputConnector;
+
     case inputTypes.SELECT:
       return EnhancedSelectInput;
 
+    case inputTypes.DYNAMIC_SELECT:
+      return EnhancedSelectInputConnector;
     case inputTypes.TAG:
       return TagInputConnector;
+
+    case inputTypes.TEXT_AREA:
+      return TextArea;
 
     case inputTypes.TEXT_TAG:
       return TextTagInputConnector;
 
     case inputTypes.TAG_SELECT:
       return TagSelectInputConnector;
+
+    case inputTypes.UMASK:
+      return UMaskInput;
 
     default:
       return TextInput;
@@ -152,7 +168,7 @@ function FormInputGroup(props) {
           <Icon
           name={icons.UNSAVED_SETTING}
           className={styles.pendingChangesIcon}
-          title="Change has not been saved yet"
+          title={translate('ChangeHasNotBeenSavedYet')}
           />
           }
         </div> */}
@@ -183,7 +199,7 @@ function FormInputGroup(props) {
       }
 
       {
-        !checkInput && helpTextWarning &&
+        (!checkInput || helpText) && helpTextWarning &&
           <FormInputHelpText
             text={helpTextWarning}
             isWarning={true}
@@ -195,7 +211,7 @@ function FormInputGroup(props) {
           <Link
             to={helpLink}
           >
-            More Info
+            {translate('MoreInfo')}
           </Link>
       }
 
@@ -206,7 +222,7 @@ function FormInputGroup(props) {
               key={index}
               text={error.message}
               link={error.link}
-              linkTooltip={error.detailedMessage}
+              tooltip={error.detailedMessage}
               isError={true}
               isCheckInput={checkInput}
             />
@@ -221,7 +237,7 @@ function FormInputGroup(props) {
               key={index}
               text={warning.message}
               link={warning.link}
-              linkTooltip={warning.detailedMessage}
+              tooltip={warning.detailedMessage}
               isWarning={true}
               isCheckInput={checkInput}
             />

@@ -1,19 +1,20 @@
 import React from 'react';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import translate from 'Utilities/String/translate';
 import TagsConnector from './TagsConnector';
 
 function TagSettings() {
   return (
-    <PageContent title="Tags">
+    <PageContent title={translate('Tags')}>
       <SettingsToolbarConnector
         showSave={false}
       />
 
-      <PageContentBodyConnector>
+      <PageContentBody>
         <TagsConnector />
-      </PageContentBodyConnector>
+      </PageContentBody>
     </PageContent>
   );
 }

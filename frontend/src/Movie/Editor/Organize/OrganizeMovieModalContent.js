@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { icons, kinds } from 'Helpers/Props';
 import Alert from 'Components/Alert';
-import Button from 'Components/Link/Button';
 import Icon from 'Components/Icon';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
+import Button from 'Components/Link/Button';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { icons, kinds } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './OrganizeMovieModalContent.css';
 
 function OrganizeMovieModalContent(props) {
@@ -20,12 +21,12 @@ function OrganizeMovieModalContent(props) {
   return (
     <ModalContent onModalClose={onModalClose}>
       <ModalHeader>
-        Organize Selected Movies
+        {translate('OrganizeSelectedMovies')}
       </ModalHeader>
 
       <ModalBody>
         <Alert>
-          Tip: To preview a rename... select "Cancel" then click any movie title and use the
+          {translate('PreviewRenameHelpText')}
           <Icon
             className={styles.renameIcon}
             name={icons.ORGANIZE}
@@ -33,7 +34,7 @@ function OrganizeMovieModalContent(props) {
         </Alert>
 
         <div className={styles.message}>
-          Are you sure you want to organize all files in the {movieTitles.length} selected movie(s)?
+          {translate('OrganizeConfirm', [movieTitles.length])}
         </div>
 
         <ul>
@@ -51,14 +52,14 @@ function OrganizeMovieModalContent(props) {
 
       <ModalFooter>
         <Button onPress={onModalClose}>
-          Cancel
+          {translate('Cancel')}
         </Button>
 
         <Button
           kind={kinds.DANGER}
           onPress={onOrganizeMoviePress}
         >
-          Organize
+          {translate('Organize')}
         </Button>
       </ModalFooter>
     </ModalContent>

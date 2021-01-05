@@ -2,11 +2,12 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import combinePath from 'Utilities/String/combinePath';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import * as commandNames from 'Commands/commandNames';
 import { executeCommand } from 'Store/Actions/commandActions';
 import { fetchLogFiles } from 'Store/Actions/systemActions';
-import * as commandNames from 'Commands/commandNames';
+import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import combinePath from 'Utilities/String/combinePath';
+import translate from 'Utilities/String/translate';
 import LogFiles from './LogFiles';
 
 function createMapStateToProps() {
@@ -29,7 +30,7 @@ function createMapStateToProps() {
         isFetching,
         items,
         deleteFilesExecuting,
-        currentLogView: 'Log Files',
+        currentLogView: translate('LogFiles'),
         location: combinePath(isWindows, appData, ['logs'])
       };
     }

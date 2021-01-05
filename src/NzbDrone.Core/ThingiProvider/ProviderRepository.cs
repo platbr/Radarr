@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dapper;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Common.Reflection;
 using NzbDrone.Core.Datastore;
+using NzbDrone.Core.Datastore.Converters;
 using NzbDrone.Core.Messaging.Events;
 
 namespace NzbDrone.Core.ThingiProvider
@@ -11,21 +13,40 @@ namespace NzbDrone.Core.ThingiProvider
     public class ProviderRepository<TProviderDefinition> : BasicRepository<TProviderDefinition>, IProviderRepository<TProviderDefinition>
         where TProviderDefinition : ProviderDefinition, new()
     {
+        protected readonly JsonSerializerOptions _serializerSettings;
+
         protected ProviderRepository(IMainDatabase database, IEventAggregator eventAggregator)
             : base(database, eventAggregator)
         {
+            var serializerSettings = new JsonSerializerOptions
+            {
+                AllowTrailingCommas = true,
+                IgnoreNullValues = true,
+                PropertyNameCaseInsensitive = true,
+                DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            };
+
+            serializerSettings.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, true));
+            serializerSettings.Converters.Add(new TimeSpanConverter());
+            serializerSettings.Converters.Add(new UtcConverter());
+
+            _serializerSettings = serializerSettings;
         }
 
-        protected override IEnumerable<TProviderDefinition> GetResults(SqlBuilder.Template sql)
+        protected override List<TProviderDefinition> Query(SqlBuilder builder)
         {
+            var type = typeof(TProviderDefinition);
+            var sql = builder.Select(type).AddSelectTemplate(type);
+
             var results = new List<TProviderDefinition>();
 
             using (var conn = _database.OpenConnection())
             using (var reader = conn.ExecuteReader(sql.RawSql, sql.Parameters))
             {
                 var parser = reader.GetRowParser<TProviderDefinition>(typeof(TProviderDefinition));
-                var settingsIndex = reader.GetOrdinal("Settings");
-                var serializerSettings = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var settingsIndex = reader.GetOrdinal(nameof(ProviderDefinition.Settings));
 
                 while (reader.Read())
                 {
@@ -39,7 +60,7 @@ namespace NzbDrone.Core.ThingiProvider
                     }
                     else
                     {
-                        item.Settings = (IProviderConfig)JsonSerializer.Deserialize(body, impType, serializerSettings);
+                        item.Settings = (IProviderConfig)JsonSerializer.Deserialize(body, impType, _serializerSettings);
                     }
 
                     results.Add(item);

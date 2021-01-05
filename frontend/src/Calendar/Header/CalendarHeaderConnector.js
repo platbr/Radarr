@@ -1,11 +1,10 @@
-import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
+import { gotoCalendarNextRange, gotoCalendarPreviousRange, gotoCalendarToday, setCalendarView } from 'Store/Actions/calendarActions';
 import createDimensionsSelector from 'Store/Selectors/createDimensionsSelector';
 import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
-import { setCalendarView, gotoCalendarToday, gotoCalendarPreviousRange, gotoCalendarNextRange } from 'Store/Actions/calendarActions';
 import CalendarHeader from './CalendarHeader';
 
 function createMapStateToProps() {
@@ -14,19 +13,16 @@ function createMapStateToProps() {
     createDimensionsSelector(),
     createUISettingsSelector(),
     (calendar, dimensions, uiSettings) => {
-      const result = _.pick(calendar, [
-        'isFetching',
-        'view',
-        'time',
-        'start',
-        'end'
-      ]);
-
-      result.isSmallScreen = dimensions.isSmallScreen;
-      result.collapseViewButtons = dimensions.isLargeScreen;
-      result.longDateFormat = uiSettings.longDateFormat;
-
-      return result;
+      return {
+        isFetching: calendar.isFetching,
+        view: calendar.view,
+        time: calendar.time,
+        start: calendar.start,
+        end: calendar.end,
+        isSmallScreen: dimensions.isSmallScreen,
+        collapseViewButtons: dimensions.isLargeScreen,
+        longDateFormat: uiSettings.longDateFormat
+      };
     }
   );
 }

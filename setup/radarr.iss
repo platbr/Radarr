@@ -37,25 +37,29 @@ Compression=lzma2/normal
 AppContact={#ForumsURL}
 VersionInfoVersion={#BaseVersion}.{#BuildNumber}
 SetupLogging=yes
+OutputDir=output
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"
-Name: "windowsService"; Description: "Install Windows Service (Starts when the computer starts)"; GroupDescription: "Start automatically"; Flags: exclusive
+Name: "desktopIcon"; Description: "{cm:CreateDesktopIcon}"
+Name: "windowsService"; Description: "Install Windows Service (Starts when the computer starts as the LocalService user, you will need to change the user to access network shares)"; GroupDescription: "Start automatically"; Flags: exclusive
 Name: "startupShortcut"; Description: "Create shortcut in Startup folder (Starts when you log into Windows)"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 Name: "none"; Description: "Do not start automatically"; GroupDescription: "Start automatically"; Flags: exclusive unchecked
 
 [Files]
-Source: "..\_artifacts\windows\{#Framework}\Radarr\Radarr.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\_artifacts\windows\{#Framework}\Radarr\*"; Excludes: "Radarr.Update"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\_artifacts\{#Runtime}\{#Framework}\Radarr\Radarr.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\_artifacts\{#Runtime}\{#Framework}\Radarr\*"; Excludes: "Radarr.Update"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: "/icon"
-Name: "{commondesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: "/icon"
+Name: "{commondesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Parameters: "/icon"; Tasks: desktopIcon
 Name: "{userstartup}\{#AppName}"; Filename: "{app}\Radarr.exe"; WorkingDir: "{app}"; Tasks: startupShortcut
+
+[InstallDelete]
+Name: "{app}"; Type: filesandordirs
 
 [Run]
 Filename: "{app}\Radarr.Console.exe"; StatusMsg: "Removing previous Windows Service"; Parameters: "/u"; Flags: runhidden waituntilterminated;
@@ -72,5 +76,6 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
 begin
-  Exec(ExpandConstant('{commonappdata}\Radarr\bin\Radarr.Console.exe'), '/u', '', 0, ewWaitUntilTerminated, ResultCode)
+  Exec('net', 'stop radarr', '', 0, ewWaitUntilTerminated, ResultCode)
+  Exec('sc', 'delete radarr', '', 0, ewWaitUntilTerminated, ResultCode)
 end;

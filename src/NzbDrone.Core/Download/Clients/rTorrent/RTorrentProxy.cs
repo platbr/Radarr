@@ -4,6 +4,7 @@ using System.Net;
 using CookComputing.XmlRpc;
 using NLog;
 using NzbDrone.Common.Extensions;
+using NzbDrone.Common.Serializer;
 
 namespace NzbDrone.Core.Download.Clients.RTorrent
 {
@@ -87,6 +88,8 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
                     "d.is_open=", // long
                     "d.is_active=", // long
                     "d.complete=")); //long
+
+            _logger.Trace(ret.ToJson());
 
             var items = new List<RTorrentTorrent>();
 
@@ -264,6 +267,11 @@ namespace NzbDrone.Core.Download.Clients.RTorrent
             }
             catch (WebException ex)
             {
+                if (ex.Status == WebExceptionStatus.TrustFailure)
+                {
+                    throw new DownloadClientUnavailableException("Unable to connect to rTorrent, certificate validation failed.", ex);
+                }
+
                 throw new DownloadClientUnavailableException("Unable to connect to rTorrent, please check your settings", ex);
             }
         }

@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
 import SettingsToolbarConnector from 'Settings/SettingsToolbarConnector';
+import translate from 'Utilities/String/translate';
 import MetadatasConnector from './Metadata/MetadatasConnector';
 import MetadataOptionsConnector from './Options/MetadataOptionsConnector';
 
@@ -38,6 +39,9 @@ class MetadataSettings extends Component {
     }
   }
 
+  //
+  // Render
+
   render() {
     const {
       isSaving,
@@ -45,21 +49,21 @@ class MetadataSettings extends Component {
     } = this.state;
 
     return (
-      <PageContent title="Metadata Settings">
+      <PageContent title={translate('MetadataSettings')}>
         <SettingsToolbarConnector
           isSaving={isSaving}
           hasPendingChanges={hasPendingChanges}
           onSavePress={this.onSavePress}
         />
 
-        <PageContentBodyConnector>
+        <PageContentBody>
           <MetadataOptionsConnector
             onChildMounted={this.onChildMounted}
             onChildStateChange={this.onChildStateChange}
           />
 
           <MetadatasConnector />
-        </PageContentBodyConnector>
+        </PageContentBody>
       </PageContent>
     );
   }

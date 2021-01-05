@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { align, icons } from 'Helpers/Props';
 import Menu from 'Components/Menu/Menu';
 import MenuContent from 'Components/Menu/MenuContent';
-import ToolbarMenuButton from 'Components/Menu/ToolbarMenuButton';
 import SearchMenuItem from 'Components/Menu/SearchMenuItem';
+import ToolbarMenuButton from 'Components/Menu/ToolbarMenuButton';
+import { align, icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 
 class MovieIndexSearchMenu extends Component {
 
@@ -29,14 +30,14 @@ class MovieIndexSearchMenu extends Component {
             name="missingMoviesSearch"
             onPress={onSearchPress}
           >
-            Search Missing
+            {translate('SearchMissing')}
           </SearchMenuItem>
 
           <SearchMenuItem
             name="cutoffUnmetMoviesSearch"
             onPress={onSearchPress}
           >
-            Search Cutoff Unmet
+            {translate('SearchCutoffUnmet')}
           </SearchMenuItem>
         </MenuContent>
       </Menu>

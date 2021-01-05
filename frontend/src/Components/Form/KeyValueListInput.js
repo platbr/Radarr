@@ -1,6 +1,6 @@
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import classNames from 'classnames';
 import KeyValueListInputItem from './KeyValueListInputItem';
 import styles from './KeyValueListInput.css';
 
@@ -98,7 +98,9 @@ class KeyValueListInput extends Component {
       className,
       value,
       keyPlaceholder,
-      valuePlaceholder
+      valuePlaceholder,
+      hasError,
+      hasWarning
     } = this.props;
 
     const { isFocused } = this.state;
@@ -106,7 +108,9 @@ class KeyValueListInput extends Component {
     return (
       <div className={classNames(
         className,
-        isFocused && styles.isFocused
+        isFocused && styles.isFocused,
+        hasError && styles.hasError,
+        hasWarning && styles.hasWarning
       )}
       >
         {

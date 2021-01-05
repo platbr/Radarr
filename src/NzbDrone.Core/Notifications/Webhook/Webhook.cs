@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using FluentValidation.Results;
 using NzbDrone.Common.Extensions;
@@ -16,7 +17,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             _proxy = proxy;
         }
 
-        public override string Link => "https://github.com/Radarr/Radarr/wiki/Webhook";
+        public override string Link => "https://wiki.servarr.com/Radarr_Settings#Connect";
 
         public override void OnGrab(GrabMessage message)
         {
@@ -25,10 +26,12 @@ namespace NzbDrone.Core.Notifications.Webhook
 
             var payload = new WebhookGrabPayload
             {
-                EventType = "Grab",
+                EventType = WebhookEventType.Grab,
                 Movie = new WebhookMovie(message.Movie),
                 RemoteMovie = new WebhookRemoteMovie(remoteMovie),
-                Release = new WebhookRelease(quality, remoteMovie)
+                Release = new WebhookRelease(quality, remoteMovie),
+                DownloadClient = message.DownloadClient,
+                DownloadId = message.DownloadId
             };
 
             _proxy.SendWebhook(payload, Settings);
@@ -40,23 +43,48 @@ namespace NzbDrone.Core.Notifications.Webhook
 
             var payload = new WebhookImportPayload
             {
-                EventType = "Download",
+                EventType = WebhookEventType.Download,
                 Movie = new WebhookMovie(message.Movie),
                 RemoteMovie = new WebhookRemoteMovie(message.Movie),
                 MovieFile = new WebhookMovieFile(movieFile),
-                IsUpgrade = message.OldMovieFiles.Any()
+                IsUpgrade = message.OldMovieFiles.Any(),
+                DownloadClient = message.DownloadClient,
+                DownloadId = message.DownloadId
             };
+
+            if (message.OldMovieFiles.Any())
+            {
+                payload.DeletedFiles = message.OldMovieFiles.ConvertAll(x =>
+                    new WebhookMovieFile(x)
+                    {
+                        Path = Path.Combine(message.Movie.Path, x.RelativePath)
+                    });
+            }
 
             _proxy.SendWebhook(payload, Settings);
         }
 
         public override void OnMovieRename(Movie movie)
         {
-            var payload = new WebhookPayload
+            var payload = new WebhookRenamePayload
             {
-                EventType = "Rename",
+                EventType = WebhookEventType.Rename,
                 Movie = new WebhookMovie(movie)
             };
+
+            _proxy.SendWebhook(payload, Settings);
+        }
+
+        public override void OnHealthIssue(HealthCheck.HealthCheck healthCheck)
+        {
+            var payload = new WebhookHealthPayload
+                          {
+                              EventType = WebhookEventType.Health,
+                              Level = healthCheck.Type,
+                              Message = healthCheck.Message,
+                              Type = healthCheck.Source.Name,
+                              WikiUrl = healthCheck.WikiUrl?.ToString()
+                          };
 
             _proxy.SendWebhook(payload, Settings);
         }
@@ -78,7 +106,7 @@ namespace NzbDrone.Core.Notifications.Webhook
             {
                 var payload = new WebhookGrabPayload
                 {
-                    EventType = "Test",
+                    EventType = WebhookEventType.Test,
                     Movie = new WebhookMovie
                     {
                         Id = 1,

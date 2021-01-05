@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentValidation;
+using FluentValidation.Results;
 using Nancy;
 using Nancy.Responses.Negotiation;
 using Newtonsoft.Json;
@@ -15,6 +16,21 @@ namespace Radarr.Http.REST
     {
         private const string ROOT_ROUTE = "/";
         private const string ID_ROUTE = @"/(?<id>[\d]{1,10})";
+
+        // See src/Radarr.Api.V3/Queue/QueueModule.cs
+        private static readonly HashSet<string> VALID_SORT_KEYS = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "timeleft",
+            "estimatedCompletionTime",
+            "protocol",
+            "indexer",
+            "downloadClient",
+            "quality",
+            "languages",
+            "status",
+            "title",
+            "progress"
+        };
 
         private readonly HashSet<string> _excludedKeys = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
                                                 {
@@ -224,7 +240,7 @@ namespace Radarr.Http.REST
             return Negotiate.WithModel(model).WithStatusCode(statusCode);
         }
 
-        protected TResource ReadResourceFromRequest(bool skipValidate = false)
+        protected TResource ReadResourceFromRequest(bool skipValidate = false, bool skipSharedValidate = false)
         {
             TResource resource;
 
@@ -242,7 +258,12 @@ namespace Radarr.Http.REST
                 throw new BadRequestException("Request body can't be empty");
             }
 
-            var errors = SharedValidator.Validate(resource).Errors.ToList();
+            var errors = new List<ValidationFailure>();
+
+            if (!skipSharedValidate)
+            {
+                errors.AddRange(SharedValidator.Validate(resource).Errors);
+            }
 
             if (Request.Method.Equals("POST", StringComparison.InvariantCultureIgnoreCase) && !skipValidate && !Request.Url.Path.EndsWith("/test", StringComparison.InvariantCultureIgnoreCase))
             {
@@ -286,7 +307,15 @@ namespace Radarr.Http.REST
 
             if (Request.Query.SortKey != null)
             {
-                pagingResource.SortKey = Request.Query.SortKey.ToString();
+                var sortKey = Request.Query.SortKey.ToString();
+
+                if (!VALID_SORT_KEYS.Contains(sortKey) &&
+                    !TableMapping.Mapper.IsValidSortKey(sortKey))
+                {
+                    throw new BadRequestException($"Invalid sort key {sortKey}");
+                }
+
+                pagingResource.SortKey = sortKey;
 
                 // For backwards compatibility with v2
                 if (Request.Query.SortDir != null)

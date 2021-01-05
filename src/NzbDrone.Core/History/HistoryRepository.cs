@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dapper;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
@@ -17,7 +16,7 @@ namespace NzbDrone.Core.History
         List<MovieHistory> FindByDownloadId(string downloadId);
         List<MovieHistory> FindDownloadHistory(int movieId, QualityModel quality);
         List<MovieHistory> GetByMovieId(int movieId, MovieHistoryEventType? eventType);
-        void DeleteForMovie(int movieId);
+        void DeleteForMovies(List<int> movieIds);
         MovieHistory MostRecentForMovie(int movieId);
         List<MovieHistory> Since(DateTime date, MovieHistoryEventType? eventType);
     }
@@ -69,33 +68,22 @@ namespace NzbDrone.Core.History
             return query.OrderByDescending(h => h.Date).ToList();
         }
 
-        public void DeleteForMovie(int movieId)
+        public void DeleteForMovies(List<int> movieIds)
         {
-            Delete(c => c.MovieId == movieId);
-        }
-
-        private IEnumerable<MovieHistory> SelectJoined(SqlBuilder.Template sql)
-        {
-            using (var conn = _database.OpenConnection())
-            {
-                return conn.Query<MovieHistory, Movie, Profile, MovieHistory>(
-                    sql.RawSql,
-                    (hist, movie, profile) =>
-                    {
-                        hist.Movie = movie;
-                        hist.Movie.Profile = profile;
-                        return hist;
-                    },
-                    sql.Parameters)
-                    .ToList();
-            }
+            Delete(c => movieIds.Contains(c.MovieId));
         }
 
         protected override SqlBuilder PagedBuilder() => new SqlBuilder()
             .Join<MovieHistory, Movie>((h, m) => h.MovieId == m.Id)
             .Join<Movie, Profile>((m, p) => m.ProfileId == p.Id);
 
-        protected override IEnumerable<MovieHistory> PagedSelector(SqlBuilder.Template sql) => SelectJoined(sql);
+        protected override IEnumerable<MovieHistory> PagedQuery(SqlBuilder sql) =>
+            _database.QueryJoined<MovieHistory, Movie, Profile>(sql, (hist, movie, profile) =>
+                    {
+                        hist.Movie = movie;
+                        hist.Movie.Profile = profile;
+                        return hist;
+                    });
 
         public MovieHistory MostRecentForMovie(int movieId)
         {

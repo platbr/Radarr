@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import { icons, kinds } from 'Helpers/Props';
-import LegendItem from './LegendItem';
+import translate from 'Utilities/String/translate';
 import LegendIconItem from './LegendIconItem';
+import LegendItem from './LegendItem';
 import styles from './Legend.css';
 
 function Legend(props) {
@@ -16,10 +17,10 @@ function Legend(props) {
   if (showCutoffUnmetIcon) {
     iconsToShow.push(
       <LegendIconItem
-        name="Cutoff Not Met"
+        name={translate('CutoffUnmet')}
         icon={icons.MOVIE_FILE}
         kind={kinds.WARNING}
-        tooltip="Quality or language cutoff has not been met"
+        tooltip={translate('QualityOrLangCutoffHasNotBeenMet')}
       />
     );
   }
@@ -28,32 +29,45 @@ function Legend(props) {
     <div className={styles.legend}>
       <div>
         <LegendItem
-          status="unreleased"
-          tooltip="Movie hasn't released yet"
+          style='ended'
+          name={translate('DownloadedAndMonitored')}
           colorImpairedMode={colorImpairedMode}
         />
 
         <LegendItem
-          status="unmonitored"
-          tooltip="Movie is unmonitored"
+          style='availNotMonitored'
+          name={translate('DownloadedButNotMonitored')}
           colorImpairedMode={colorImpairedMode}
         />
       </div>
 
       <div>
         <LegendItem
-          status="downloading"
-          tooltip="Movie is currently downloading"
+          style='missingMonitored'
+          name={translate('MissingMonitoredAndConsideredAvailable')}
           colorImpairedMode={colorImpairedMode}
         />
 
         <LegendItem
-          status="downloaded"
-          tooltip="Movie was downloaded and sorted"
+          style='missingUnmonitored'
+          name={translate('MissingNotMonitored')}
           colorImpairedMode={colorImpairedMode}
         />
       </div>
 
+      <div>
+        <LegendItem
+          style='queue'
+          name={translate('Queued')}
+          colorImpairedMode={colorImpairedMode}
+        />
+
+        <LegendItem
+          style='continuing'
+          name={translate('Unreleased')}
+          colorImpairedMode={colorImpairedMode}
+        />
+      </div>
       {
         iconsToShow.length > 0 &&
           <div>

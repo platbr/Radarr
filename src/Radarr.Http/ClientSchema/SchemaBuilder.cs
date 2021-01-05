@@ -105,7 +105,14 @@ namespace Radarr.Http.ClientSchema
 
                     if (fieldAttribute.Type == FieldType.Select || fieldAttribute.Type == FieldType.TagSelect)
                     {
-                        field.SelectOptions = GetSelectOptions(fieldAttribute.SelectOptions);
+                        if (fieldAttribute.SelectOptionsProviderAction.IsNotNullOrWhiteSpace())
+                        {
+                            field.SelectOptionsProviderAction = fieldAttribute.SelectOptionsProviderAction;
+                        }
+                        else
+                        {
+                            field.SelectOptions = GetSelectOptions(fieldAttribute.SelectOptions);
+                        }
                     }
 
                     if (fieldAttribute.Hidden != HiddenType.Visible)
@@ -145,10 +152,34 @@ namespace Radarr.Http.ClientSchema
         {
             if (selectOptions.IsEnum)
             {
-                var options = from Enum e in Enum.GetValues(selectOptions)
-                    select new SelectOption { Value = Convert.ToInt32(e), Name = e.ToString() };
+                var options = selectOptions.GetFields().Where(v => v.IsStatic).Select(v =>
+                {
+                    var name = v.Name.Replace('_', ' ');
+                    var value = Convert.ToInt32(v.GetRawConstantValue());
+                    var attrib = v.GetCustomAttribute<FieldOptionAttribute>();
+                    if (attrib != null)
+                    {
+                        return new SelectOption
+                        {
+                            Value = value,
+                            Name = attrib.Label ?? name,
+                            Order = attrib.Order,
+                            Hint = attrib.Hint ?? $"({value})"
+                        };
+                    }
+                    else
+                    {
+                        return new SelectOption
+                        {
+                            Value = value,
+                            Name = name,
+                            Order = value,
+                            Hint = $"({value})"
+                        };
+                    }
+                });
 
-                return options.OrderBy(o => o.Value).ToList();
+                return options.OrderBy(o => o.Order).ToList();
             }
 
             if (typeof(ISelectOptionsConverter).IsAssignableFrom(selectOptions))
@@ -190,7 +221,11 @@ namespace Radarr.Http.ClientSchema
             {
                 return fieldValue =>
                 {
-                    if (fieldValue.GetType() == typeof(JArray))
+                    if (fieldValue == null)
+                    {
+                        return Enumerable.Empty<int>();
+                    }
+                    else if (fieldValue.GetType() == typeof(JArray))
                     {
                         return ((JArray)fieldValue).Select(s => s.Value<int>());
                     }
@@ -204,13 +239,17 @@ namespace Radarr.Http.ClientSchema
             {
                 return fieldValue =>
                 {
-                    if (fieldValue.GetType() == typeof(JArray))
+                    if (fieldValue == null)
+                    {
+                        return Enumerable.Empty<string>();
+                    }
+                    else if (fieldValue.GetType() == typeof(JArray))
                     {
                         return ((JArray)fieldValue).Select(s => s.Value<string>());
                     }
                     else
                     {
-                        return fieldValue.ToString().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                        return fieldValue.ToString().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim());
                     }
                 };
             }

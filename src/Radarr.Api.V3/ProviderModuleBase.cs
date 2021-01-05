@@ -7,6 +7,7 @@ using NzbDrone.Common.Serializer;
 using NzbDrone.Core.ThingiProvider;
 using NzbDrone.Core.Validation;
 using Radarr.Http;
+using Radarr.Http.Extensions;
 
 namespace Radarr.Api.V3
 {
@@ -27,7 +28,7 @@ namespace Radarr.Api.V3
             Get("schema", x => GetTemplates());
             Post("test", x => Test(ReadResourceFromRequest(true)));
             Post("testall", x => TestAll());
-            Post("action/{action}", x => RequestAction(x.action, ReadResourceFromRequest(true)));
+            Post("action/{action}", x => RequestAction(x.action, ReadResourceFromRequest(true, true)));
 
             GetResourceAll = GetAll;
             GetResourceById = GetProviderById;
@@ -84,8 +85,10 @@ namespace Radarr.Api.V3
         private void UpdateProvider(TProviderResource providerResource)
         {
             var providerDefinition = GetDefinition(providerResource, false);
+            var forceSave = Request.GetBooleanQueryParameter("forceSave");
 
-            if (providerDefinition.Enable)
+            // Only test existing definitions if it is enabled and forceSave isn't set.
+            if (providerDefinition.Enable && !forceSave)
             {
                 Test(providerDefinition, false);
             }
@@ -114,7 +117,7 @@ namespace Radarr.Api.V3
         {
             var defaultDefinitions = _providerFactory.GetDefaultDefinitions().OrderBy(p => p.ImplementationName).ToList();
 
-            var result = new List<TProviderResource>(defaultDefinitions.Count());
+            var result = new List<TProviderResource>(defaultDefinitions.Count);
 
             foreach (var providerDefinition in defaultDefinitions)
             {

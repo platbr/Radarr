@@ -10,11 +10,15 @@ export const PASSWORD = 'password';
 export const PATH = 'path';
 export const QUALITY_PROFILE_SELECT = 'qualityProfileSelect';
 export const ROOT_FOLDER_SELECT = 'rootFolderSelect';
+export const INDEXER_FLAGS_SELECT = 'indexerFlagsSelect';
 export const SELECT = 'select';
+export const DYNAMIC_SELECT = 'dynamicSelect';
 export const TAG = 'tag';
 export const TEXT = 'text';
+export const TEXT_AREA = 'textArea';
 export const TEXT_TAG = 'textTag';
 export const TAG_SELECT = 'tagSelect';
+export const UMASK = 'umask';
 
 export const all = [
   AUTO_COMPLETE,
@@ -29,9 +33,13 @@ export const all = [
   PATH,
   QUALITY_PROFILE_SELECT,
   ROOT_FOLDER_SELECT,
+  INDEXER_FLAGS_SELECT,
   SELECT,
+  DYNAMIC_SELECT,
   TAG,
   TEXT,
+  TEXT_AREA,
   TEXT_TAG,
-  TAG_SELECT
+  TAG_SELECT,
+  UMASK
 ];

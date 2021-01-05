@@ -40,7 +40,7 @@ namespace NzbDrone.Core.Indexers.Torznab
         {
             get
             {
-                yield return GetDefinition("Jackett", GetSettings("http://localhost:9117/torznab/YOURINDEXER"));
+                yield return GetDefinition("Jackett", GetSettings("http://localhost:9117/api/v2.0/indexers/YOURINDEXER/results/torznab/"));
                 yield return GetDefinition("HD4Free.xyz", GetSettings("http://hd4free.xyz"));
             }
         }
@@ -147,6 +147,29 @@ namespace NzbDrone.Core.Indexers.Torznab
 
                 return new ValidationFailure(string.Empty, "Unable to connect to indexer, check the log for more details");
             }
+        }
+
+        public override object RequestAction(string action, IDictionary<string, string> query)
+        {
+            if (action == "newznabCategories")
+            {
+                List<NewznabCategory> categories = null;
+                try
+                {
+                    categories = _capabilitiesProvider.GetCapabilities(Settings).Categories;
+                }
+                catch
+                {
+                    // Use default categories
+                }
+
+                return new
+                {
+                    options = NewznabCategoryFieldOptionsConverter.GetFieldSelectOptions(categories)
+                };
+            }
+
+            return base.RequestAction(action, query);
         }
     }
 }

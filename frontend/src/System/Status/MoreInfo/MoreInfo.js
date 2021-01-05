@@ -1,9 +1,10 @@
 import React, { Component } from 'react';
-import Link from 'Components/Link/Link';
-import FieldSet from 'Components/FieldSet';
 import DescriptionList from 'Components/DescriptionList/DescriptionList';
-import DescriptionListItemTitle from 'Components/DescriptionList/DescriptionListItemTitle';
 import DescriptionListItemDescription from 'Components/DescriptionList/DescriptionListItemDescription';
+import DescriptionListItemTitle from 'Components/DescriptionList/DescriptionListItemTitle';
+import FieldSet from 'Components/FieldSet';
+import Link from 'Components/Link/Link';
+import translate from 'Utilities/String/translate';
 
 class MoreInfo extends Component {
 
@@ -12,34 +13,46 @@ class MoreInfo extends Component {
 
   render() {
     return (
-      <FieldSet legend="More Info">
+      <FieldSet legend={translate('MoreInfo')}>
         <DescriptionList>
-          <DescriptionListItemTitle>Home page</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('HomePage')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
             <Link to="https://radarr.video/">radarr.video</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>Discord</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('Discord')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://discord.gg/AD3UP37">discord.gg/AD3UP37</Link>
+            <Link to="https://discord.gg/r5wJPt9">discord.gg/r5wJPt9</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>Wiki</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('Wiki')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://github.com/Radarr/Radarr/wiki">github.com/Radarr/Radarr/wiki</Link>
+            <Link to="https://wiki.servarr.com/Radarr">wiki.servarr.com/Radarr</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>Donations</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('Donations')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
-            <Link to="https://radarr.video/donate">radarr.video/donate</Link>
+            <Link to="https://opencollective.com/radarr">opencollective.com/radarr</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>Source</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('Source')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
             <Link to="https://github.com/Radarr/Radarr/">github.com/Radarr/Radarr</Link>
           </DescriptionListItemDescription>
 
-          <DescriptionListItemTitle>Feature Requests</DescriptionListItemTitle>
+          <DescriptionListItemTitle>
+            {translate('FeatureRequests')}
+          </DescriptionListItemTitle>
           <DescriptionListItemDescription>
             <Link to="https://github.com/Radarr/Radarr/issues">github.com/Radarr/Radarr/issues</Link>
           </DescriptionListItemDescription>

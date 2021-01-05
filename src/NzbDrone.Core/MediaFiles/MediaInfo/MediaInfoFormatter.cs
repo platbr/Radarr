@@ -342,7 +342,13 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                     return ""; // Intel(R) IPP
                 }
 
-                if (videoCodecLibrary == "")
+                if (videoCodecLibrary.Contains("ZJMedia") ||
+                    videoCodecLibrary.Contains("DigiArty"))
+                {
+                    return ""; // Other
+                }
+
+                if (string.IsNullOrEmpty(videoCodecLibrary))
                 {
                     return ""; // Unknown mp4v
                 }
@@ -351,6 +357,11 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
             if (videoFormat.ContainsIgnoreCase("VC-1"))
             {
                 return "VC1";
+            }
+
+            if (videoFormat.ContainsIgnoreCase("AV1"))
+            {
+                return "AV1";
             }
 
             if (videoFormat.ContainsIgnoreCase("VP6") || videoFormat.ContainsIgnoreCase("VP7") ||
@@ -445,6 +456,7 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
         private static decimal? FormatAudioChannelsFromAudioChannelPositions(MediaInfoModel mediaInfo)
         {
             var audioChannelPositions = mediaInfo.AudioChannelPositions;
+            var audioFormat = mediaInfo.AudioFormat;
 
             if (audioChannelPositions.IsNullOrWhiteSpace())
             {
@@ -481,24 +493,24 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
                     {
                         var channelSplit = channel.Split(new string[] { "." }, StringSplitOptions.None);
 
-                        if (channelSplit.Count() == 3)
+                        if (channelSplit.Length == 3)
                         {
-                            positions += decimal.Parse(string.Format("{0}.{1}", channelSplit[1], channelSplit[2]));
+                            positions += decimal.Parse(string.Format("{0}.{1}", channelSplit[1], channelSplit[2]), CultureInfo.InvariantCulture);
                         }
                         else
                         {
-                            positions += decimal.Parse(channel);
+                            positions += decimal.Parse(channel, CultureInfo.InvariantCulture);
                         }
                     }
 
                     return positions;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 Logger.Warn()
-                      .Message("Unable to format audio channels using 'AudioChannelPositions', with a value of: '{0}' and '{1}'", audioChannelPositions, mediaInfo.AudioChannelPositionsText)
-                      .WriteSentryWarn("UnknownAudioChannelFormat", audioChannelPositions, mediaInfo.AudioChannelPositionsText)
+                      .Message("Unable to format audio channels using 'AudioChannelPositions', with a value of: '{0}' and '{1}'. Error {2}", audioChannelPositions, mediaInfo.AudioChannelPositionsTextContainer, ex.Message)
+                      .WriteSentryWarn("UnknownAudioChannelFormat", audioChannelPositions, mediaInfo.AudioChannelPositionsTextContainer)
                       .Write();
             }
 
@@ -507,21 +519,30 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
 
         private static decimal? FormatAudioChannelsFromAudioChannelPositionsText(MediaInfoModel mediaInfo)
         {
-            var audioChannelPositionsText = mediaInfo.AudioChannelPositionsText;
-            var audioChannels = mediaInfo.AudioChannels;
+            var audioChannelPositionsTextContainer = mediaInfo.AudioChannelPositionsTextContainer;
+            var audioChannelPositionsTextStream = mediaInfo.AudioChannelPositionsTextStream;
+            var audioChannelsContainer = mediaInfo.AudioChannelsContainer;
+            var audioChannelsStream = mediaInfo.AudioChannelsStream;
 
-            if (audioChannelPositionsText.IsNullOrWhiteSpace())
+            //Skip if the positions texts give us nothing
+            if ((audioChannelPositionsTextContainer.IsNullOrWhiteSpace() || audioChannelPositionsTextContainer == "Object Based") &&
+                    (audioChannelPositionsTextStream.IsNullOrWhiteSpace() || audioChannelPositionsTextStream == "Object Based"))
             {
                 return null;
             }
 
             try
             {
-                return audioChannelPositionsText.ContainsIgnoreCase("LFE") ? audioChannels - 1 + 0.1m : audioChannels;
+                if (audioChannelsStream > 0)
+                {
+                    return audioChannelPositionsTextStream.ContainsIgnoreCase("LFE") ? audioChannelsStream - 1 + 0.1m : audioChannelsStream;
+                }
+
+                return audioChannelPositionsTextContainer.ContainsIgnoreCase("LFE") ? audioChannelsContainer - 1 + 0.1m : audioChannelsContainer;
             }
             catch (Exception e)
             {
-                Logger.Warn(e, "Unable to format audio channels using 'AudioChannelPositionsText', with a value of: '{0}'", audioChannelPositionsText);
+                Logger.Warn(e, "Unable to format audio channels using 'AudioChannelPositionsText' or 'AudioChannelPositionsTextStream', with value of: '{0}' and '{1}", audioChannelPositionsTextContainer, audioChannelPositionsTextStream);
             }
 
             return null;
@@ -529,11 +550,29 @@ namespace NzbDrone.Core.MediaFiles.MediaInfo
 
         private static decimal? FormatAudioChannelsFromAudioChannels(MediaInfoModel mediaInfo)
         {
-            var audioChannels = mediaInfo.AudioChannels;
+            var audioChannelsContainer = mediaInfo.AudioChannelsContainer;
+            var audioChannelsStream = mediaInfo.AudioChannelsStream;
+
+            var audioFormat = (mediaInfo.AudioFormat ?? string.Empty).Trim().Split(new[] { " / " }, StringSplitOptions.RemoveEmptyEntries);
+            var splitAdditionalFeatures = (mediaInfo.AudioAdditionalFeatures ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Workaround https://github.com/MediaArea/MediaInfo/issues/299 for DTS-X Audio
+            if (audioFormat.ContainsIgnoreCase("DTS") &&
+                splitAdditionalFeatures.ContainsIgnoreCase("XLL") &&
+                splitAdditionalFeatures.ContainsIgnoreCase("X") &&
+                audioChannelsContainer > 0)
+            {
+                return audioChannelsContainer - 1 + 0.1m;
+            }
+
+            if (mediaInfo.SchemaRevision > 5)
+            {
+                return audioChannelsStream > 0 ? audioChannelsStream : audioChannelsContainer;
+            }
 
             if (mediaInfo.SchemaRevision >= 3)
             {
-                return audioChannels;
+                return audioChannelsContainer;
             }
 
             return null;

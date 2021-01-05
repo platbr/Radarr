@@ -16,7 +16,7 @@ namespace Radarr.Api.V3.Config
             {
                 Id = model.Id,
 
-                RenameMovies = model.RenameEpisodes,
+                RenameMovies = model.RenameMovies,
                 KeepFileNameHistory = model.KeepFileNameHistory,
                 ReplaceIllegalCharacters = model.ReplaceIllegalCharacters,
                 ColonReplacementFormat = model.ColonReplacementFormat,
@@ -44,7 +44,7 @@ namespace Radarr.Api.V3.Config
             {
                 Id = resource.Id,
 
-                RenameEpisodes = resource.RenameMovies,
+                RenameMovies = resource.RenameMovies,
                 KeepFileNameHistory = resource.KeepFileNameHistory,
                 ReplaceIllegalCharacters = resource.ReplaceIllegalCharacters,
                 ColonReplacementFormat = resource.ColonReplacementFormat,

@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import formatTime from 'Utilities/Date/formatTime';
 import formatTimeSpan from 'Utilities/Date/formatTimeSpan';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
-import TableRowCell from 'Components/Table/Cells/TableRowCell';
+import translate from 'Utilities/String/translate';
 import styles from './TimeleftCell.css';
 
 function TimeleftCell(props) {
@@ -19,35 +20,35 @@ function TimeleftCell(props) {
     timeFormat
   } = props;
 
-  if (status === 'Delay') {
+  if (status === 'delay') {
     const date = getRelativeDate(estimatedCompletionTime, shortDateFormat, showRelativeDates);
     const time = formatTime(estimatedCompletionTime, timeFormat, { includeMinuteZero: true });
 
     return (
       <TableRowCell
         className={styles.timeleft}
-        title={`Delaying download until ${date} at ${time}`}
+        title={translate('DelayingDownloadUntilInterp', [date, time])}
       >
         -
       </TableRowCell>
     );
   }
 
-  if (status === 'DownloadClientUnavailable') {
+  if (status === 'downloadClientUnavailable') {
     const date = getRelativeDate(estimatedCompletionTime, shortDateFormat, showRelativeDates);
     const time = formatTime(estimatedCompletionTime, timeFormat, { includeMinuteZero: true });
 
     return (
       <TableRowCell
         className={styles.timeleft}
-        title={`Retrying download ${date} at ${time}`}
+        title={translate('RetryingDownloadInterp', [date, time])}
       >
         -
       </TableRowCell>
     );
   }
 
-  if (!timeleft) {
+  if (!timeleft || status === 'completed' || status === 'failed') {
     return (
       <TableRowCell className={styles.timeleft}>
         -

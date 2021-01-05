@@ -1,13 +1,13 @@
 import _ from 'lodash';
 import { createAction } from 'redux-actions';
 import { batchActions } from 'redux-batched-actions';
-import createAjaxRequest from 'Utilities/createAjaxRequest';
-import { createThunk, handleThunks } from 'Store/thunks';
 import movieEntities from 'Movie/movieEntities';
+import { createThunk, handleThunks } from 'Store/thunks';
+import createAjaxRequest from 'Utilities/createAjaxRequest';
+import { removeItem, set, updateItem } from './baseActions';
 import createFetchHandler from './Creators/createFetchHandler';
 import createHandleActions from './Creators/createHandleActions';
 import createRemoveItemHandler from './Creators/createRemoveItemHandler';
-import { set, removeItem, updateItem } from './baseActions';
 
 //
 // Variables
@@ -141,41 +141,72 @@ export const actionHandlers = handleThunks({
     const {
       movieFileIds,
       languages,
-      quality
+      indexerFlags,
+      quality,
+      edition,
+      releaseGroup
     } = payload;
 
     dispatch(set({ section, isSaving: true }));
 
-    const data = {
+    const requestData = {
       movieFileIds
     };
 
     if (languages) {
-      data.languages = languages;
+      requestData.languages = languages;
+    }
+
+    if (indexerFlags !== undefined) {
+      requestData.indexerFlags = indexerFlags;
     }
 
     if (quality) {
-      data.quality = quality;
+      requestData.quality = quality;
+    }
+
+    if (releaseGroup) {
+      requestData.releaseGroup = releaseGroup;
+    }
+
+    if (edition) {
+      requestData.edition = edition;
     }
 
     const promise = createAjaxRequest({
       url: '/movieFile/editor',
       method: 'PUT',
       dataType: 'json',
-      data: JSON.stringify(data)
+      data: JSON.stringify(requestData)
     }).request;
 
-    promise.done(() => {
+    promise.done((data) => {
       dispatch(batchActions([
         ...movieFileIds.map((id) => {
           const props = {};
+
+          const movieFile = data.find((file) => file.id === id);
+
+          props.qualityCutoffNotMet = movieFile.qualityCutoffNotMet;
 
           if (languages) {
             props.languages = languages;
           }
 
+          if (indexerFlags) {
+            props.indexerFlags = indexerFlags;
+          }
+
           if (quality) {
             props.quality = quality;
+          }
+
+          if (edition) {
+            props.edition = edition;
+          }
+
+          if (releaseGroup) {
+            props.releaseGroup = releaseGroup;
           }
 
           return updateItem({ section, id, ...props });

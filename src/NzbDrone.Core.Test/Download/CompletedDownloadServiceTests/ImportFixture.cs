@@ -37,6 +37,7 @@ namespace NzbDrone.Core.Test.Download
 
             _trackedDownload = Builder<TrackedDownload>.CreateNew()
                     .With(c => c.State = TrackedDownloadState.Downloading)
+                    .With(c => c.ImportItem = completed)
                     .With(c => c.DownloadItem = completed)
                     .With(c => c.RemoteMovie = remoteMovie)
                     .Build();
@@ -56,6 +57,10 @@ namespace NzbDrone.Core.Test.Download
             Mocker.GetMock<IParsingService>()
                   .Setup(s => s.GetMovie("Drone.1998"))
                   .Returns(remoteMovie.Movie);
+
+            Mocker.GetMock<IHistoryService>()
+                  .Setup(s => s.FindByDownloadId(It.IsAny<string>()))
+                  .Returns(new List<MovieHistory>());
         }
 
         private RemoteMovie BuildRemoteMovie()

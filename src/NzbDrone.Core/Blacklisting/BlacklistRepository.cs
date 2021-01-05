@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
-using Dapper;
 using NzbDrone.Core.Datastore;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies;
@@ -12,6 +10,7 @@ namespace NzbDrone.Core.Blacklisting
         List<Blacklist> BlacklistedByTitle(int movieId, string sourceTitle);
         List<Blacklist> BlacklistedByTorrentInfoHash(int movieId, string torrentInfoHash);
         List<Blacklist> BlacklistedByMovie(int movieId);
+        void DeleteForMovies(List<int> movieIds);
     }
 
     public class BlacklistRepository : BasicRepository<Blacklist>, IBlacklistRepository
@@ -36,23 +35,16 @@ namespace NzbDrone.Core.Blacklisting
             return Query(x => x.MovieId == movieId);
         }
 
-        private IEnumerable<Blacklist> SelectJoined(SqlBuilder.Template sql)
+        public void DeleteForMovies(List<int> movieIds)
         {
-            using (var conn = _database.OpenConnection())
-            {
-                return conn.Query<Blacklist, Movie, Blacklist>(
-                    sql.RawSql,
-                    (bl, movie) =>
-                    {
-                        bl.Movie = movie;
-                        return bl;
-                    },
-                    sql.Parameters)
-                    .ToList();
-            }
+            Delete(x => movieIds.Contains(x.MovieId));
         }
 
         protected override SqlBuilder PagedBuilder() => new SqlBuilder().Join<Blacklist, Movie>((b, m) => b.MovieId == m.Id);
-        protected override IEnumerable<Blacklist> PagedSelector(SqlBuilder.Template sql) => SelectJoined(sql);
+        protected override IEnumerable<Blacklist> PagedQuery(SqlBuilder sql) => _database.QueryJoined<Blacklist, Movie>(sql, (bl, movie) =>
+                    {
+                        bl.Movie = movie;
+                        return bl;
+                    });
     }
 }

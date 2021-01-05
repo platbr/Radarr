@@ -1,5 +1,6 @@
 using NzbDrone.Core.Configuration;
 using NzbDrone.Core.MediaFiles;
+using NzbDrone.Core.Qualities;
 using Radarr.Http.REST;
 
 namespace Radarr.Api.V3.Config
@@ -9,7 +10,7 @@ namespace Radarr.Api.V3.Config
         public bool AutoUnmonitorPreviouslyDownloadedMovies { get; set; }
         public string RecycleBin { get; set; }
         public int RecycleBinCleanupDays { get; set; }
-        public bool AutoDownloadPropers { get; set; }
+        public ProperDownloadTypes DownloadPropersAndRepacks { get; set; }
         public bool CreateEmptyMovieFolders { get; set; }
         public bool DeleteEmptyFolders { get; set; }
         public FileDateType FileDate { get; set; }
@@ -18,9 +19,7 @@ namespace Radarr.Api.V3.Config
         public bool PathsDefaultStatic { get; set; }
 
         public bool SetPermissionsLinux { get; set; }
-        public string FileChmod { get; set; }
-        public string FolderChmod { get; set; }
-        public string ChownUser { get; set; }
+        public string ChmodFolder { get; set; }
         public string ChownGroup { get; set; }
 
         public bool SkipFreeSpaceCheckWhenImporting { get; set; }
@@ -40,7 +39,7 @@ namespace Radarr.Api.V3.Config
                 AutoUnmonitorPreviouslyDownloadedMovies = model.AutoUnmonitorPreviouslyDownloadedMovies,
                 RecycleBin = model.RecycleBin,
                 RecycleBinCleanupDays = model.RecycleBinCleanupDays,
-                AutoDownloadPropers = model.AutoDownloadPropers,
+                DownloadPropersAndRepacks = model.DownloadPropersAndRepacks,
                 CreateEmptyMovieFolders = model.CreateEmptyMovieFolders,
                 DeleteEmptyFolders = model.DeleteEmptyFolders,
                 FileDate = model.FileDate,
@@ -48,9 +47,7 @@ namespace Radarr.Api.V3.Config
                 AutoRenameFolders = model.AutoRenameFolders,
 
                 SetPermissionsLinux = model.SetPermissionsLinux,
-                FileChmod = model.FileChmod,
-                FolderChmod = model.FolderChmod,
-                ChownUser = model.ChownUser,
+                ChmodFolder = model.ChmodFolder,
                 ChownGroup = model.ChownGroup,
 
                 SkipFreeSpaceCheckWhenImporting = model.SkipFreeSpaceCheckWhenImporting,

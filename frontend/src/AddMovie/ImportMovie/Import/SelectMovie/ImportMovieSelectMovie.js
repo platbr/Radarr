@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Manager, Popper, Reference } from 'react-popper';
-import getUniqueElememtId from 'Utilities/getUniqueElementId';
-import { icons, kinds } from 'Helpers/Props';
-import Icon from 'Components/Icon';
-import Portal from 'Components/Portal';
 import FormInputButton from 'Components/Form/FormInputButton';
+import TextInput from 'Components/Form/TextInput';
+import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import TextInput from 'Components/Form/TextInput';
+import Portal from 'Components/Portal';
+import { icons, kinds } from 'Helpers/Props';
+import getUniqueElememtId from 'Utilities/getUniqueElementId';
+import translate from 'Utilities/String/translate';
 import ImportMovieSearchResultConnector from './ImportMovieSearchResultConnector';
 import ImportMovieTitle from './ImportMovieTitle';
 import styles from './ImportMovieSelectMovie.css';
@@ -174,7 +175,7 @@ class ImportMovieSelectMovie extends Component {
                         kind={kinds.WARNING}
                       />
 
-                      No match found!
+                      {translate('NoMatchFound')}
                     </div> :
                     null
                 }
@@ -189,7 +190,7 @@ class ImportMovieSelectMovie extends Component {
                         kind={kinds.WARNING}
                       />
 
-                      Search failed, please try again later.
+                      {translate('SearchFailedPleaseTryAgainLater')}
                     </div> :
                     null
                 }

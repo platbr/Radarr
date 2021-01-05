@@ -24,7 +24,7 @@ namespace NzbDrone.Core.MediaFiles
         void Scan(Movie movie);
         string[] GetVideoFiles(string path, bool allDirectories = true);
         string[] GetNonVideoFiles(string path, bool allDirectories = true);
-        List<string> FilterFiles(string basePath, IEnumerable<string> files);
+        List<string> FilterPaths(string basePath, IEnumerable<string> paths, bool filterExtras = true);
     }
 
     public class DiskScanService :
@@ -39,8 +39,6 @@ namespace NzbDrone.Core.MediaFiles
         private readonly IMediaFileTableCleanupService _mediaFileTableCleanupService;
         private readonly IRootFolderService _rootFolderService;
         private readonly IEventAggregator _eventAggregator;
-        private readonly IMediaFileService _movieFileRepository;
-        private readonly IRenameMovieFileService _renameMovieFiles;
         private readonly Logger _logger;
 
         public DiskScanService(IDiskProvider diskProvider,
@@ -51,8 +49,6 @@ namespace NzbDrone.Core.MediaFiles
                                IMediaFileTableCleanupService mediaFileTableCleanupService,
                                IRootFolderService rootFolderService,
                                IEventAggregator eventAggregator,
-                               IMediaFileService movieFileRepository,
-                               IRenameMovieFileService renameMovieFiles,
                                Logger logger)
         {
             _diskProvider = diskProvider;
@@ -63,41 +59,54 @@ namespace NzbDrone.Core.MediaFiles
             _mediaFileTableCleanupService = mediaFileTableCleanupService;
             _rootFolderService = rootFolderService;
             _eventAggregator = eventAggregator;
-            _movieFileRepository = movieFileRepository;
-            _renameMovieFiles = renameMovieFiles;
             _logger = logger;
         }
 
-        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:extras|@eadir|\.@__thumb|extrafanart|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludedExtrasSubFolderRegex = new Regex(@"(?:\\|\/|^)(?:extras|extrafanart|behind the scenes|deleted scenes|featurettes|interviews|scenes|sample[s]?|shorts|trailers)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludedSubFoldersRegex = new Regex(@"(?:\\|\/|^)(?:@eadir|\.@__thumb|plex versions|\.[^\\/]+)(?:\\|\/)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ExcludedExtraFilesRegex = new Regex(@"(-(trailer|other|behindthescenes|deleted|featurette|interview|scene|short)\.[^.]+$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex ExcludedFilesRegex = new Regex(@"^\._|^Thumbs\.db$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public void Scan(Movie movie)
         {
             var rootFolder = _rootFolderService.GetBestRootFolderPath(movie.Path);
 
-            if (!_diskProvider.FolderExists(rootFolder))
-            {
-                _logger.Warn("Movies' root folder ({0}) doesn't exist.", rootFolder);
-                _eventAggregator.PublishEvent(new MovieScanSkippedEvent(movie, MovieScanSkippedReason.RootFolderDoesNotExist));
-                return;
-            }
+            var movieFolderExists = _diskProvider.FolderExists(movie.Path);
 
-            if (_diskProvider.GetDirectories(rootFolder).Empty())
+            if (!movieFolderExists)
             {
-                _logger.Warn("Movies' root folder ({0}) is empty.", rootFolder);
-                _eventAggregator.PublishEvent(new MovieScanSkippedEvent(movie, MovieScanSkippedReason.RootFolderIsEmpty));
-                return;
+                if (!_diskProvider.FolderExists(rootFolder))
+                {
+                    _logger.Warn("Movie's root folder ({0}) doesn't exist.", rootFolder);
+                    _eventAggregator.PublishEvent(new MovieScanSkippedEvent(movie, MovieScanSkippedReason.RootFolderDoesNotExist));
+                    return;
+                }
+
+                if (_diskProvider.FolderEmpty(rootFolder))
+                {
+                    _logger.Warn("Movie's root folder ({0}) is empty.", rootFolder);
+                    _eventAggregator.PublishEvent(new MovieScanSkippedEvent(movie, MovieScanSkippedReason.RootFolderIsEmpty));
+                    return;
+                }
             }
 
             _logger.ProgressInfo("Scanning disk for {0}", movie.Title);
 
-            if (!_diskProvider.FolderExists(movie.Path))
+            if (!movieFolderExists)
             {
                 if (_configService.CreateEmptyMovieFolders)
                 {
-                    _logger.Debug("Creating missing movie folder: {0}", movie.Path);
-                    _diskProvider.CreateFolder(movie.Path);
-                    SetPermissions(movie.Path);
+                    if (_configService.DeleteEmptyFolders)
+                    {
+                        _logger.Debug("Not creating missing movie folder: {0} because delete empty series folders is enabled", movie.Path);
+                    }
+                    else
+                    {
+                        _logger.Debug("Creating missing series folder: {0}", movie.Path);
+
+                        _diskProvider.CreateFolder(movie.Path);
+                        SetPermissions(movie.Path);
+                    }
                 }
                 else
                 {
@@ -111,7 +120,7 @@ namespace NzbDrone.Core.MediaFiles
             }
 
             var videoFilesStopwatch = Stopwatch.StartNew();
-            var mediaFileList = FilterFiles(movie.Path, GetVideoFiles(movie.Path)).ToList();
+            var mediaFileList = FilterPaths(movie.Path, GetVideoFiles(movie.Path)).ToList();
             videoFilesStopwatch.Stop();
             _logger.Trace("Finished getting movie files for: {0} [{1}]", movie, videoFilesStopwatch.Elapsed);
 
@@ -171,11 +180,20 @@ namespace NzbDrone.Core.MediaFiles
             return mediaFileList.ToArray();
         }
 
-        public List<string> FilterFiles(string basePath, IEnumerable<string> files)
+        public List<string> FilterPaths(string basePath, IEnumerable<string> paths, bool filterExtras = true)
         {
-            return files.Where(file => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(file)))
-                        .Where(file => !ExcludedFilesRegex.IsMatch(Path.GetFileName(file)))
-                        .ToList();
+            var filteredPaths =  paths.Where(path => !ExcludedSubFoldersRegex.IsMatch(basePath.GetRelativePath(path)))
+                                      .Where(path => !ExcludedFilesRegex.IsMatch(Path.GetFileName(path)))
+                                      .ToList();
+
+            if (filterExtras)
+            {
+                filteredPaths = filteredPaths.Where(path => !ExcludedExtrasSubFolderRegex.IsMatch(basePath.GetRelativePath(path)))
+                                             .Where(path => !ExcludedExtraFilesRegex.IsMatch(Path.GetFileName(path)))
+                                             .ToList();
+            }
+
+            return filteredPaths;
         }
 
         private void SetPermissions(string path)
@@ -187,8 +205,7 @@ namespace NzbDrone.Core.MediaFiles
 
             try
             {
-                var permissions = _configService.FolderChmod;
-                _diskProvider.SetPermissions(path, permissions, _configService.ChownUser, _configService.ChownGroup);
+                _diskProvider.SetPermissions(path, _configService.ChmodFolder, _configService.ChownGroup);
             }
             catch (Exception ex)
             {
@@ -201,13 +218,11 @@ namespace NzbDrone.Core.MediaFiles
         {
             if (_configService.DeleteEmptyFolders)
             {
-                if (_diskProvider.GetFiles(path, SearchOption.AllDirectories).Empty())
+                _diskProvider.RemoveEmptySubfolders(path);
+
+                if (_diskProvider.FolderEmpty(path))
                 {
                     _diskProvider.DeleteFolder(path, true);
-                }
-                else
-                {
-                    _diskProvider.RemoveEmptySubfolders(path);
                 }
             }
         }

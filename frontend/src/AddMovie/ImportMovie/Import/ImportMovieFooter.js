@@ -1,13 +1,16 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { inputTypes, kinds } from 'Helpers/Props';
+// import CheckInput from 'Components/Form/CheckInput';
+import FormInputGroup from 'Components/Form/FormInputGroup';
+import Icon from 'Components/Icon';
 import Button from 'Components/Link/Button';
 import SpinnerButton from 'Components/Link/SpinnerButton';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-// import CheckInput from 'Components/Form/CheckInput';
-import FormInputGroup from 'Components/Form/FormInputGroup';
 import PageContentFooter from 'Components/Page/PageContentFooter';
+import Popover from 'Components/Tooltip/Popover';
+import { icons, inputTypes, kinds, tooltipPositions } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './ImportMovieFooter.css';
 
 const MIXED = 'mixed';
@@ -93,7 +96,10 @@ class ImportMovieFooter extends Component {
       isMonitorMixed,
       isQualityProfileIdMixed,
       isMinimumAvailabilityMixed,
+      hasUnsearchedItems,
+      importError,
       onImportPress,
+      onLookupPress,
       onCancelLookupPress
     } = this.props;
 
@@ -107,7 +113,7 @@ class ImportMovieFooter extends Component {
       <PageContentFooter>
         <div className={styles.inputContainer}>
           <div className={styles.label}>
-            Monitor
+            {translate('Monitor')}
           </div>
 
           <FormInputGroup
@@ -122,7 +128,7 @@ class ImportMovieFooter extends Component {
 
         <div className={styles.inputContainer}>
           <div className={styles.label}>
-            Minimum Availability
+            {translate('MinimumAvailability')}
           </div>
 
           <FormInputGroup
@@ -137,7 +143,7 @@ class ImportMovieFooter extends Component {
 
         <div className={styles.inputContainer}>
           <div className={styles.label}>
-            Quality Profile
+            {translate('QualityProfile')}
           </div>
 
           <FormInputGroup
@@ -163,31 +169,75 @@ class ImportMovieFooter extends Component {
               isDisabled={!selectedCount || isLookingUpMovie}
               onPress={onImportPress}
             >
-              Import {selectedCount} {selectedCount > 1 ? 'Movies' : 'Movie'}
+              {translate('Import')} {selectedCount} {selectedCount > 1 ? translate('Movies') : translate('Movie')}
             </SpinnerButton>
 
             {
-              isLookingUpMovie &&
+              isLookingUpMovie ?
                 <Button
                   className={styles.loadingButton}
                   kind={kinds.WARNING}
                   onPress={onCancelLookupPress}
                 >
-                  Cancel Processing
-                </Button>
+                  {translate('CancelProcessing')}
+                </Button> :
+                null
             }
 
             {
-              isLookingUpMovie &&
+              hasUnsearchedItems ?
+                <Button
+                  className={styles.loadingButton}
+                  kind={kinds.SUCCESS}
+                  onPress={onLookupPress}
+                >
+                  {translate('StartProcessing')}
+                </Button> :
+                null
+            }
+
+            {
+              isLookingUpMovie ?
                 <LoadingIndicator
                   className={styles.loading}
                   size={24}
-                />
+                /> :
+                null
             }
 
             {
-              isLookingUpMovie &&
-                'Processing Folders'
+              isLookingUpMovie ?
+                translate('ProcessingFolders') :
+                null
+            }
+
+            {
+              importError ?
+                <Popover
+                  anchor={
+                    <Icon
+                      className={styles.importError}
+                      name={icons.WARNING}
+                      kind={kinds.WARNING}
+                    />
+                  }
+                  title={translate('ImportErrors')}
+                  body={
+                    <ul>
+                      {
+                        importError.responseJSON.map((error, index) => {
+                          return (
+                            <li key={index}>
+                              {error.errorMessage}
+                            </li>
+                          );
+                        })
+                      }
+                    </ul>
+                  }
+                  position={tooltipPositions.RIGHT}
+                /> :
+                null
             }
           </div>
         </div>
@@ -206,8 +256,11 @@ ImportMovieFooter.propTypes = {
   isMonitorMixed: PropTypes.bool.isRequired,
   isQualityProfileIdMixed: PropTypes.bool.isRequired,
   isMinimumAvailabilityMixed: PropTypes.bool.isRequired,
+  hasUnsearchedItems: PropTypes.bool.isRequired,
+  importError: PropTypes.object,
   onInputChange: PropTypes.func.isRequired,
   onImportPress: PropTypes.func.isRequired,
+  onLookupPress: PropTypes.func.isRequired,
   onCancelLookupPress: PropTypes.func.isRequired
 };
 

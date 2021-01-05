@@ -1,45 +1,31 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { kinds, inputTypes } from 'Helpers/Props';
-import SpinnerButton from 'Components/Link/SpinnerButton';
+import CheckInput from 'Components/Form/CheckInput';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
-import CheckInput from 'Components/Form/CheckInput';
-import ModalContent from 'Components/Modal/ModalContent';
-import ModalHeader from 'Components/Modal/ModalHeader';
+import FormLabel from 'Components/Form/FormLabel';
+import SpinnerButton from 'Components/Link/SpinnerButton';
 import ModalBody from 'Components/Modal/ModalBody';
+import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
+import ModalHeader from 'Components/Modal/ModalHeader';
+import { inputTypes, kinds } from 'Helpers/Props';
 import MoviePoster from 'Movie/MoviePoster';
+import translate from 'Utilities/String/translate';
 import styles from './AddNewMovieModalContent.css';
 
 class AddNewMovieModalContent extends Component {
 
   //
-  // Lifecycle
-
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = {
-      searchForMovie: false
-    };
-  }
-
-  //
   // Listeners
-
-  onSearchForMissingMovieChange = ({ value }) => {
-    this.setState({ searchForMovie: value });
-  }
 
   onQualityProfileIdChange = ({ value }) => {
     this.props.onInputChange({ name: 'qualityProfileId', value: parseInt(value) });
   }
 
   onAddMoviePress = () => {
-    this.props.onAddMoviePress(this.state.searchForMovie);
+    this.props.onAddMoviePress();
   }
 
   //
@@ -56,6 +42,7 @@ class AddNewMovieModalContent extends Component {
       monitor,
       qualityProfileId,
       minimumAvailability,
+      searchForMovie,
       folder,
       tags,
       isSmallScreen,
@@ -95,7 +82,7 @@ class AddNewMovieModalContent extends Component {
 
               <Form>
                 <FormGroup>
-                  <FormLabel>Root Folder</FormLabel>
+                  <FormLabel>{translate('RootFolder')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.ROOT_FOLDER_SELECT}
@@ -108,7 +95,7 @@ class AddNewMovieModalContent extends Component {
                       movieFolder: folder,
                       isWindows
                     }}
-                    helpText={`'${folder}' subfolder will be created automatically`}
+                    helpText={translate('SubfolderWillBeCreatedAutomaticallyInterp', [folder])}
                     onChange={onInputChange}
                     {...rootFolderPath}
                   />
@@ -116,7 +103,7 @@ class AddNewMovieModalContent extends Component {
 
                 <FormGroup>
                   <FormLabel>
-                    Monitor
+                    {translate('Monitor')}
                   </FormLabel>
 
                   <FormInputGroup
@@ -128,7 +115,7 @@ class AddNewMovieModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Minimum Availability</FormLabel>
+                  <FormLabel>{translate('MinimumAvailability')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.AVAILABILITY_SELECT}
@@ -139,7 +126,7 @@ class AddNewMovieModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Quality Profile</FormLabel>
+                  <FormLabel>{translate('QualityProfile')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.QUALITY_PROFILE_SELECT}
@@ -150,7 +137,7 @@ class AddNewMovieModalContent extends Component {
                 </FormGroup>
 
                 <FormGroup>
-                  <FormLabel>Tags</FormLabel>
+                  <FormLabel>{translate('Tags')}</FormLabel>
 
                   <FormInputGroup
                     type={inputTypes.TAG}
@@ -167,15 +154,15 @@ class AddNewMovieModalContent extends Component {
         <ModalFooter className={styles.modalFooter}>
           <label className={styles.searchForMissingMovieLabelContainer}>
             <span className={styles.searchForMissingMovieLabel}>
-              Start search for missing movie
+              {translate('StartSearchForMissingMovie')}
             </span>
 
             <CheckInput
               containerClassName={styles.searchForMissingMovieContainer}
               className={styles.searchForMissingMovieInput}
               name="searchForMovie"
-              value={this.state.searchForMovie}
-              onChange={this.onSearchForMissingMovieChange}
+              onChange={onInputChange}
+              {...searchForMovie}
             />
           </label>
 
@@ -185,7 +172,7 @@ class AddNewMovieModalContent extends Component {
             isSpinning={isAdding}
             onPress={this.onAddMoviePress}
           >
-            Add {title}
+            {translate('AddMovie')}
           </SpinnerButton>
         </ModalFooter>
       </ModalContent>
@@ -204,6 +191,7 @@ AddNewMovieModalContent.propTypes = {
   monitor: PropTypes.object.isRequired,
   qualityProfileId: PropTypes.object,
   minimumAvailability: PropTypes.object.isRequired,
+  searchForMovie: PropTypes.object.isRequired,
   folder: PropTypes.string.isRequired,
   tags: PropTypes.object.isRequired,
   isSmallScreen: PropTypes.bool.isRequired,

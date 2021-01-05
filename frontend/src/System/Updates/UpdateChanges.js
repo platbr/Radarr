@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import styles from './UpdateChanges.css';
 
 class UpdateChanges extends Component {
@@ -23,9 +24,13 @@ class UpdateChanges extends Component {
         <ul>
           {
             changes.map((change, index) => {
+              const checkChange = change.replace(/#\d{4,5}\b/g, (match, contents) => {
+                return `[${match}](https://github.com/Radarr/Radarr/issues/${match.substring(1)})`;
+              });
+
               return (
                 <li key={index}>
-                  {change}
+                  <InlineMarkdown data={checkChange} />
                 </li>
               );
             })

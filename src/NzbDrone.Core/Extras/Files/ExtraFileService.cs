@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.Disk;
+using NzbDrone.Common.Extensions;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
@@ -17,7 +18,6 @@ namespace NzbDrone.Core.Extras.Files
     {
         List<TExtraFile> GetFilesByMovie(int movieId);
         List<TExtraFile> GetFilesByMovieFile(int movieFileId);
-        TExtraFile FindByPath(string path);
         void Upsert(TExtraFile extraFile);
         void Upsert(List<TExtraFile> extraFiles);
         void Delete(int id);
@@ -25,8 +25,8 @@ namespace NzbDrone.Core.Extras.Files
     }
 
     public abstract class ExtraFileService<TExtraFile> : IExtraFileService<TExtraFile>,
-                                                         IHandleAsync<MovieDeletedEvent>,
-                                                         IHandleAsync<MovieFileDeletedEvent>
+                                                         IHandleAsync<MovieFileDeletedEvent>,
+                                                         IHandleAsync<MoviesDeletedEvent>
         where TExtraFile : ExtraFile, new()
     {
         private readonly IExtraFileRepository<TExtraFile> _repository;
@@ -56,11 +56,6 @@ namespace NzbDrone.Core.Extras.Files
         public List<TExtraFile> GetFilesByMovieFile(int movieFileId)
         {
             return _repository.GetFilesByMovieFile(movieFileId);
-        }
-
-        public TExtraFile FindByPath(string path)
-        {
-            return _repository.FindByPath(path);
         }
 
         public void Upsert(TExtraFile extraFile)
@@ -94,10 +89,9 @@ namespace NzbDrone.Core.Extras.Files
             _repository.DeleteMany(ids);
         }
 
-        public void HandleAsync(MovieDeletedEvent message)
+        public void HandleAsync(MoviesDeletedEvent message)
         {
-            _logger.Debug("Deleting Extra from database for movie: {0}", message.Movie);
-            _repository.DeleteForMovie(message.Movie.Id);
+            _repository.DeleteForMovies(message.Movies.Select(m => m.Id).ToList());
         }
 
         public void HandleAsync(MovieFileDeletedEvent message)
@@ -119,7 +113,8 @@ namespace NzbDrone.Core.Extras.Files
                     if (_diskProvider.FileExists(path))
                     {
                         // Send to the recycling bin so they can be recovered if necessary
-                        _recycleBinProvider.DeleteFile(path);
+                        var subfolder = _diskProvider.GetParentFolder(movie.Path).GetRelativePath(_diskProvider.GetParentFolder(path));
+                        _recycleBinProvider.DeleteFile(path, subfolder);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.Messaging.Events;
@@ -16,7 +16,7 @@ namespace NzbDrone.Core.Movies.Credits
         List<Credit> UpdateCredits(List<Credit> credits, Movie movie);
     }
 
-    public class CreditService : ICreditService, IHandleAsync<MovieDeletedEvent>
+    public class CreditService : ICreditService, IHandleAsync<MoviesDeletedEvent>
     {
         private readonly ICreditRepository _creditRepo;
 
@@ -71,8 +71,10 @@ namespace NzbDrone.Core.Movies.Credits
             // Should never have multiple credits with same credit_id, but check to ensure incase TMDB is on fritz
             var dupeFreeCredits = credits.DistinctBy(m => m.CreditTmdbId).ToList();
 
-            var insert = dupeFreeCredits.Where(t => !existingCredits.Any(c => c.CreditTmdbId == t.CreditTmdbId)).ToList();
-            var update = existingCredits.Where(t => dupeFreeCredits.Any(c => c.CreditTmdbId == t.CreditTmdbId)).ToList();
+            dupeFreeCredits.ForEach(c => c.Id = existingCredits.FirstOrDefault(t => t.CreditTmdbId == c.CreditTmdbId)?.Id ?? 0);
+
+            var insert = dupeFreeCredits.Where(t => t.Id == 0).ToList();
+            var update = dupeFreeCredits.Where(t => t.Id > 0).ToList();
             var delete = existingCredits.Where(t => !dupeFreeCredits.Any(c => c.CreditTmdbId == t.CreditTmdbId)).ToList();
 
             _creditRepo.DeleteMany(delete);
@@ -82,9 +84,9 @@ namespace NzbDrone.Core.Movies.Credits
             return credits;
         }
 
-        public void HandleAsync(MovieDeletedEvent message)
+        public void HandleAsync(MoviesDeletedEvent message)
         {
-            _creditRepo.DeleteMany(GetAllCreditsForMovie(message.Movie.Id));
+            _creditRepo.DeleteForMovies(message.Movies.Select(m => m.Id).ToList());
         }
     }
 }

@@ -6,11 +6,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using NLog;
 using NzbDrone.Common.EnsureThat;
+using NzbDrone.Common.EnvironmentInfo;
 using NzbDrone.Common.Extensions;
 using NzbDrone.Core.CustomFormats;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.MediaInfo;
 using NzbDrone.Core.Movies;
+using NzbDrone.Core.Movies.Translations;
+using NzbDrone.Core.Parser;
 using NzbDrone.Core.Qualities;
 
 namespace NzbDrone.Core.Organizer
@@ -30,10 +33,11 @@ namespace NzbDrone.Core.Organizer
         private readonly INamingConfigService _namingConfigService;
         private readonly IQualityDefinitionService _qualityDefinitionService;
         private readonly IUpdateMediaInfo _mediaInfoUpdater;
+        private readonly IMovieTranslationService _movieTranslationService;
         private readonly ICustomFormatService _formatService;
         private readonly Logger _logger;
 
-        private static readonly Regex TitleRegex = new Regex(@"\{(?<prefix>[- ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[a-z0-9]+))?(?<suffix>[- ._)\]]*)\}",
+        private static readonly Regex TitleRegex = new Regex(@"\{(?<prefix>[- ._\[(]*)(?<token>(?:[a-z0-9]+)(?:(?<separator>[- ._]+)(?:[a-z0-9]+))?)(?::(?<customFormat>[a-z0-9|]+))?(?<suffix>[- ._)\]]*)\}",
                                                              RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex TagsRegex = new Regex(@"(?<tags>\{tags(?:\:0+)?})",
@@ -47,10 +51,7 @@ namespace NzbDrone.Core.Organizer
 
         public static readonly Regex AirDateRegex = new Regex(@"\{Air(\s|\W|_)Date\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public static readonly Regex SeriesTitleRegex = new Regex(@"(?<token>\{(?:Series)(?<separator>[- ._])(Clean)?Title\})",
-                                                                            RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        public static readonly Regex MovieTitleRegex = new Regex(@"(?<token>\{((?:(Movie|Original))(?<separator>[- ._])(Clean)?(Title|Filename)(The)?)\})",
+        public static readonly Regex MovieTitleRegex = new Regex(@"(?<token>\{((?:(Movie|Original))(?<separator>[- ._])(Clean|Original)?(Title|Filename)(The)?)(?::(?<customFormat>[a-z0-9|]+))?\})",
                                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex FileNameCleanupRegex = new Regex(@"([- ._])(\1)+", RegexOptions.Compiled);
@@ -64,15 +65,19 @@ namespace NzbDrone.Core.Organizer
 
         private static readonly char[] EpisodeTitleTrimCharacters = new[] { ' ', '.', '?' };
 
+        private static readonly Regex TitlePrefixRegex = new Regex(@"^(The|An|A) (.*?)((?: *\([^)]+\))*)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public FileNameBuilder(INamingConfigService namingConfigService,
                                IQualityDefinitionService qualityDefinitionService,
                                IUpdateMediaInfo mediaInfoUpdater,
+                               IMovieTranslationService movieTranslationService,
                                ICustomFormatService formatService,
                                Logger logger)
         {
             _namingConfigService = namingConfigService;
             _qualityDefinitionService = qualityDefinitionService;
             _mediaInfoUpdater = mediaInfoUpdater;
+            _movieTranslationService = movieTranslationService;
             _formatService = formatService;
             _logger = logger;
         }
@@ -84,7 +89,7 @@ namespace NzbDrone.Core.Organizer
                 namingConfig = _namingConfigService.GetConfig();
             }
 
-            if (!namingConfig.RenameEpisodes)
+            if (!namingConfig.RenameMovies)
             {
                 return GetOriginalTitle(movieFile);
             }
@@ -103,11 +108,25 @@ namespace NzbDrone.Core.Organizer
             AddTagsTokens(tokenHandlers, movieFile);
             AddCustomFormats(tokenHandlers, movie, movieFile, customFormats);
 
-            var fileName = ReplaceTokens(pattern, tokenHandlers, namingConfig).Trim();
-            fileName = FileNameCleanupRegex.Replace(fileName, match => match.Captures[0].Value[0].ToString());
-            fileName = TrimSeparatorsRegex.Replace(fileName, string.Empty);
+            var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var components = new List<string>();
 
-            return fileName;
+            foreach (var s in splitPatterns)
+            {
+                var splitPattern = s;
+
+                var component = ReplaceTokens(splitPattern, tokenHandlers, namingConfig).Trim();
+
+                component = FileNameCleanupRegex.Replace(component, match => match.Captures[0].Value[0].ToString());
+                component = TrimSeparatorsRegex.Replace(component, string.Empty);
+
+                if (component.IsNotNullOrWhiteSpace())
+                {
+                    components.Add(component);
+                }
+            }
+
+            return Path.Combine(components.ToArray());
         }
 
         public string BuildFilePath(Movie movie, string fileName, string extension)
@@ -152,8 +171,23 @@ namespace NzbDrone.Core.Organizer
                 AddMovieFileTokens(tokenHandlers, new MovieFile { SceneName = $"{movie.Title} {movie.Year}", RelativePath = $"{movie.Title} {movie.Year}" });
             }
 
-            string name = ReplaceTokens(namingConfig.MovieFolderFormat, tokenHandlers, namingConfig);
-            return CleanFolderName(name, namingConfig.ReplaceIllegalCharacters, namingConfig.ColonReplacementFormat);
+            var splitPatterns = pattern.Split(new char[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var components = new List<string>();
+
+            foreach (var s in splitPatterns)
+            {
+                var splitPattern = s;
+
+                var component = ReplaceTokens(splitPattern, tokenHandlers, namingConfig);
+                component = CleanFolderName(component);
+
+                if (component.IsNotNullOrWhiteSpace())
+                {
+                    components.Add(component);
+                }
+            }
+
+            return Path.Combine(components.ToArray());
         }
 
         public static string CleanTitle(string title)
@@ -167,24 +201,7 @@ namespace NzbDrone.Core.Organizer
 
         public static string TitleThe(string title)
         {
-            string[] prefixes = { "The ", "An ", "A " };
-
-            if (title.Length < 5)
-            {
-                return title;
-            }
-
-            foreach (string prefix in prefixes)
-            {
-                int prefix_length = prefix.Length;
-                if (prefix.ToLower() == title.Substring(0, prefix_length).ToLower())
-                {
-                    title = title.Substring(prefix_length) + ", " + prefix.Trim();
-                    break;
-                }
-            }
-
-            return title.Trim();
+            return TitlePrefixRegex.Replace(title, "$2, $1$3");
         }
 
         public static string CleanFileName(string name, bool replace = true, ColonReplacementFormat colonReplacement = ColonReplacementFormat.Delete)
@@ -203,20 +220,50 @@ namespace NzbDrone.Core.Organizer
             return result.Trim();
         }
 
-        public static string CleanFolderName(string name, bool replace = true, ColonReplacementFormat colonReplacement = ColonReplacementFormat.Delete)
+        public static string CleanFolderName(string name)
         {
             name = FileNameCleanupRegex.Replace(name, match => match.Captures[0].Value[0].ToString());
-            name = name.Trim(' ', '.');
 
-            return CleanFileName(name, replace, colonReplacement);
+            return name.Trim(' ', '.');
         }
 
         private void AddMovieTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, Movie movie)
         {
-            tokenHandlers["{Movie Title}"] = m => movie.Title;
-            tokenHandlers["{Movie CleanTitle}"] = m => CleanTitle(movie.Title);
+            tokenHandlers["{Movie Title}"] = m => GetLanguageTitle(movie, m.CustomFormat);
+            tokenHandlers["{Movie CleanTitle}"] = m => CleanTitle(GetLanguageTitle(movie, m.CustomFormat));
             tokenHandlers["{Movie Title The}"] = m => TitleThe(movie.Title);
-            tokenHandlers["{Movie Certification}"] = mbox => movie.Certification;
+            tokenHandlers["{Movie TitleFirstCharacter}"] = m => TitleThe(movie.Title).Substring(0, 1).FirstCharToUpper();
+            tokenHandlers["{Movie OriginalTitle}"] = m => movie.OriginalTitle ?? string.Empty;
+
+            tokenHandlers["{Movie Certification}"] = m => movie.Certification ?? string.Empty;
+            tokenHandlers["{Movie Collection}"] = m => movie.Collection?.Name ?? string.Empty;
+        }
+
+        private string GetLanguageTitle(Movie movie, string isoCodes)
+        {
+            if (isoCodes.IsNotNullOrWhiteSpace())
+            {
+                foreach (var isoCode in isoCodes.Split('|'))
+                {
+                    var language = IsoLanguages.Find(isoCode.ToLower())?.Language;
+
+                    if (language == null)
+                    {
+                        continue;
+                    }
+
+                    var titles = movie.Translations.Where(t => t.Language == language).ToList();
+
+                    if (!movie.Translations.Any())
+                    {
+                        titles = _movieTranslationService.GetAllTranslationsForMovie(movie.Id).Where(t => t.Language == language).ToList();
+                    }
+
+                    return titles.FirstOrDefault()?.Title ?? movie.Title;
+                }
+            }
+
+            return movie.Title;
         }
 
         private void AddTagsTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, MovieFile movieFile)
@@ -229,6 +276,12 @@ namespace NzbDrone.Core.Organizer
 
         private void AddReleaseDateTokens(Dictionary<string, Func<TokenMatch, string>> tokenHandlers, int releaseYear)
         {
+            if (releaseYear == 0)
+            {
+                tokenHandlers["{Release Year}"] = m => string.Empty;
+                return;
+            }
+
             tokenHandlers["{Release Year}"] = m => string.Format("{0}", releaseYear.ToString()); //Do I need m.CustomFormat?
         }
 
@@ -243,7 +296,6 @@ namespace NzbDrone.Core.Organizer
             tokenHandlers["{Original Title}"] = m => GetOriginalTitle(movieFile);
             tokenHandlers["{Original Filename}"] = m => GetOriginalFileName(movieFile);
 
-            //tokenHandlers["{IMDb Id}"] = m =>
             tokenHandlers["{Release Group}"] = m => movieFile.ReleaseGroup ?? m.DefaultValue("Radarr");
         }
 
@@ -363,9 +415,23 @@ namespace NzbDrone.Core.Organizer
             var cultures = CultureInfo.GetCultures(CultureTypes.NeutralCultures);
             for (int i = 0; i < tokens.Count; i++)
             {
+                if (tokens[i] == "Swedis")
+                {
+                    // Probably typo in mediainfo (should be 'Swedish')
+                    tokens[i] = "SV";
+                    continue;
+                }
+
+                if (tokens[i] == "Chinese" && OsInfo.IsNotWindows)
+                {
+                    // Mono only has 'Chinese (Simplified)' & 'Chinese (Traditional)'
+                    tokens[i] = "ZH";
+                    continue;
+                }
+
                 try
                 {
-                    var cultureInfo = cultures.FirstOrDefault(p => p.EnglishName == tokens[i]);
+                    var cultureInfo = cultures.FirstOrDefault(p => p.EnglishName.RemoveAccent() == tokens[i]);
 
                     if (cultureInfo != null)
                     {

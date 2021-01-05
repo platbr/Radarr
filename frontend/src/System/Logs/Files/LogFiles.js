@@ -1,29 +1,30 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons } from 'Helpers/Props';
 import Alert from 'Components/Alert';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import Table from 'Components/Table/Table';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
 import PageToolbar from 'Components/Page/Toolbar/PageToolbar';
+import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
 import PageToolbarSection from 'Components/Page/Toolbar/PageToolbarSection';
 import PageToolbarSeparator from 'Components/Page/Toolbar/PageToolbarSeparator';
-import PageToolbarButton from 'Components/Page/Toolbar/PageToolbarButton';
+import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { icons } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import LogsNavMenu from '../LogsNavMenu';
 import LogFilesTableRow from './LogFilesTableRow';
 
 const columns = [
   {
     name: 'filename',
-    label: 'Filename',
+    label: translate('Filename'),
     isVisible: true
   },
   {
     name: 'lastWriteTime',
-    label: 'Last Write Time',
+    label: translate('LastWriteTime'),
     isVisible: true
   },
   {
@@ -50,7 +51,7 @@ class LogFiles extends Component {
     } = this.props;
 
     return (
-      <PageContent title="Log Files">
+      <PageContent title={translate('LogFiles')}>
         <PageToolbar>
           <PageToolbarSection>
             <LogsNavMenu current={currentLogView} />
@@ -58,7 +59,7 @@ class LogFiles extends Component {
             <PageToolbarSeparator />
 
             <PageToolbarButton
-              label="Refresh"
+              label={translate('Refresh')}
               iconName={icons.REFRESH}
               spinningName={icons.REFRESH}
               isSpinning={isFetching}
@@ -66,14 +67,14 @@ class LogFiles extends Component {
             />
 
             <PageToolbarButton
-              label="Clear"
+              label={translate('Delete')}
               iconName={icons.CLEAR}
               isSpinning={deleteFilesExecuting}
               onPress={onDeleteFilesPress}
             />
           </PageToolbarSection>
         </PageToolbar>
-        <PageContentBodyConnector>
+        <PageContentBody>
           <Alert>
             <div>
               Log files are located in: {location}
@@ -82,7 +83,7 @@ class LogFiles extends Component {
             {
               currentLogView === 'Log Files' &&
                 <div>
-                  The log level defaults to 'Info' and can be changed in <Link to="/settings/general">General Settings</Link>
+                  {translate('TheLogLevelDefault')} <Link to="/settings/general">{translate('GeneralSettings')}</Link>
                 </div>
             }
           </Alert>
@@ -117,9 +118,11 @@ class LogFiles extends Component {
 
           {
             !isFetching && !items.length &&
-              <div>No log files</div>
+              <div>
+                {translate('NoLogFiles')}
+              </div>
           }
-        </PageContentBodyConnector>
+        </PageContentBody>
       </PageContent>
     );
   }

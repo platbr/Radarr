@@ -1,16 +1,26 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { inputTypes } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FieldSet from 'Components/FieldSet';
 import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputGroup from 'Components/Form/FormInputGroup';
+import FormLabel from 'Components/Form/FormLabel';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import { inputTypes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
+
+// Note: Do Not Translate Certification Countries
 
 export const certificationCountryOptions = [
-  { key: 'us', value: 'United States' },
-  { key: 'gb', value: 'Great Britain' }
+  { key: 'au', value: 'Australia' },
+  { key: 'br', value: 'Brazil' },
+  { key: 'ca', value: 'Canada' },
+  { key: 'fr', value: 'France' },
+  { key: 'de', value: 'Germany' },
+  { key: 'gb', value: 'Great Britain' },
+  { key: 'it', value: 'Italy' },
+  { key: 'es', value: 'Spain' },
+  { key: 'us', value: 'United States' }
 ];
 
 function MetadataOptions(props) {
@@ -23,7 +33,7 @@ function MetadataOptions(props) {
   } = props;
 
   return (
-    <FieldSet legend="Options">
+    <FieldSet legend={translate('Options')}>
       {
         isFetching &&
           <LoadingIndicator />
@@ -31,21 +41,23 @@ function MetadataOptions(props) {
 
       {
         !isFetching && error &&
-          <div>Unable to load indexer options</div>
+          <div>
+            {translate('UnableToLoadIndexerOptions')}
+          </div>
       }
 
       {
         hasSettings && !isFetching && !error &&
           <Form>
             <FormGroup>
-              <FormLabel>Certification Country</FormLabel>
+              <FormLabel>{translate('CertificationCountry')}</FormLabel>
 
               <FormInputGroup
                 type={inputTypes.SELECT}
                 name="certificationCountry"
                 values={certificationCountryOptions}
                 onChange={onInputChange}
-                helpText="Select Country for Movie Certifications"
+                helpText={translate('CertificationCountryHelpText')}
                 {...settings.certificationCountry}
               />
             </FormGroup>

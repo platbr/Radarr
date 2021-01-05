@@ -1,22 +1,21 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import formatBytes from 'Utilities/Number/formatBytes';
 import IconButton from 'Components/Link/IconButton';
-import { icons, kinds } from 'Helpers/Props';
-import TableRow from 'Components/Table/TableRow';
+import ConfirmModal from 'Components/Modal/ConfirmModal';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
-import TableRowCellButton from 'Components/Table/Cells/TableRowCellButton';
-import MovieQuality from 'Movie/MovieQuality';
+import TableRow from 'Components/Table/TableRow';
+import { icons, kinds } from 'Helpers/Props';
 import MovieFormats from 'Movie/MovieFormats';
 import MovieLanguage from 'Movie/MovieLanguage';
-import ConfirmModal from 'Components/Modal/ConfirmModal';
-import SelectQualityModal from 'MovieFile/Quality/SelectQualityModal';
-import SelectLanguageModal from 'MovieFile/Language/SelectLanguageModal';
-import * as mediaInfoTypes from 'MovieFile/mediaInfoTypes';
+import MovieQuality from 'Movie/MovieQuality';
+import FileEditModal from 'MovieFile/Edit/FileEditModal';
 import MediaInfoConnector from 'MovieFile/MediaInfoConnector';
+import * as mediaInfoTypes from 'MovieFile/mediaInfoTypes';
+import formatBytes from 'Utilities/Number/formatBytes';
+import translate from 'Utilities/String/translate';
+import FileDetailsModal from '../FileDetailsModal';
 import MovieFileRowCellPlaceholder from './MovieFileRowCellPlaceholder';
 import styles from './MovieFileEditorRow.css';
-import FileDetailsModal from '../FileDetailsModal';
 
 class MovieFileEditorRow extends Component {
 
@@ -27,31 +26,14 @@ class MovieFileEditorRow extends Component {
     super(props, context);
 
     this.state = {
-      isSelectQualityModalOpen: false,
-      isSelectLanguageModalOpen: false,
       isConfirmDeleteModalOpen: false,
-      isFileDetailsModalOpen: false
+      isFileDetailsModalOpen: false,
+      isFileEditModalOpen: false
     };
   }
 
   //
   // Listeners
-
-  onSelectQualityPress = () => {
-    this.setState({ isSelectQualityModalOpen: true });
-  }
-
-  onSelectLanguagePress = () => {
-    this.setState({ isSelectLanguageModalOpen: true });
-  }
-
-  onSelectQualityModalClose = () => {
-    this.setState({ isSelectQualityModalOpen: false });
-  }
-
-  onSelectLanguageModalClose = () => {
-    this.setState({ isSelectLanguageModalOpen: false });
-  }
 
   onDeletePress = () => {
     this.setState({ isConfirmDeleteModalOpen: true });
@@ -75,6 +57,14 @@ class MovieFileEditorRow extends Component {
     this.setState({ isFileDetailsModalOpen: false });
   }
 
+  onFileEditPress = () => {
+    this.setState({ isFileEditModalOpen: true });
+  }
+
+  onFileEditModalClose = () => {
+    this.setState({ isFileEditModalOpen: false });
+  }
+
   //
   // Render
 
@@ -91,9 +81,8 @@ class MovieFileEditorRow extends Component {
     } = this.props;
 
     const {
-      isSelectQualityModalOpen,
-      isSelectLanguageModalOpen,
       isFileDetailsModalOpen,
+      isFileEditModalOpen,
       isConfirmDeleteModalOpen
     } = this.state;
 
@@ -131,10 +120,8 @@ class MovieFileEditorRow extends Component {
           {formatBytes(size)}
         </TableRowCell>
 
-        <TableRowCellButton
+        <TableRowCell
           className={styles.language}
-          title="Click to change language"
-          onPress={this.onSelectLanguagePress}
         >
           {
             showLanguagePlaceholder &&
@@ -148,12 +135,10 @@ class MovieFileEditorRow extends Component {
                 languages={languages}
               />
           }
-        </TableRowCellButton>
+        </TableRowCell>
 
-        <TableRowCellButton
+        <TableRowCell
           className={styles.quality}
-          title="Click to change quality"
-          onPress={this.onSelectQualityPress}
         >
           {
             showQualityPlaceholder &&
@@ -168,7 +153,7 @@ class MovieFileEditorRow extends Component {
                 isCutoffNotMet={qualityCutoffNotMet}
               />
           }
-        </TableRowCellButton>
+        </TableRowCell>
 
         <TableRowCell
           className={styles.formats}
@@ -180,12 +165,17 @@ class MovieFileEditorRow extends Component {
 
         <TableRowCell className={styles.actions}>
           <IconButton
+            name={icons.EDIT}
+            onPress={this.onFileEditPress}
+          />
+
+          <IconButton
             name={icons.MEDIA_INFO}
             onPress={this.onFileDetailsPress}
           />
 
           <IconButton
-            title="Delete file"
+            title={translate('DeleteFile')}
             name={icons.REMOVE}
             onPress={this.onDeletePress}
           />
@@ -197,31 +187,21 @@ class MovieFileEditorRow extends Component {
           mediaInfo={mediaInfo}
         />
 
+        <FileEditModal
+          movieFileId={id}
+          isOpen={isFileEditModalOpen}
+          onModalClose={this.onFileEditModalClose}
+        />
+
         <ConfirmModal
           isOpen={isConfirmDeleteModalOpen}
           ids={[id]}
           kind={kinds.DANGER}
-          title="Delete Selected Movie Files"
-          message={'Are you sure you want to delete the selected movie files?'}
-          confirmLabel="Delete"
+          title={translate('DeleteSelectedMovieFiles')}
+          message={translate('DeleteSelectedMovieFilesMessage')}
+          confirmLabel={translate('Delete')}
           onConfirm={this.onConfirmDelete}
           onCancel={this.onConfirmDeleteModalClose}
-        />
-
-        <SelectQualityModal
-          isOpen={isSelectQualityModalOpen}
-          ids={[id]}
-          qualityId={quality ? quality.quality.id : 0}
-          proper={quality ? quality.revision.version > 1 : false}
-          real={quality ? quality.revision.real > 0 : false}
-          onModalClose={this.onSelectQualityModalClose}
-        />
-
-        <SelectLanguageModal
-          isOpen={isSelectLanguageModalOpen}
-          ids={[id]}
-          languageIds={languages ? languages.map((l) => l.id) : []}
-          onModalClose={this.onSelectLanguageModalClose}
         />
       </TableRow>
     );
@@ -237,7 +217,7 @@ MovieFileEditorRow.propTypes = {
   customFormats: PropTypes.arrayOf(PropTypes.object).isRequired,
   qualityCutoffNotMet: PropTypes.bool.isRequired,
   languages: PropTypes.arrayOf(PropTypes.object).isRequired,
-  mediaInfo: PropTypes.object.isRequired,
+  mediaInfo: PropTypes.object,
   onDeletePress: PropTypes.func.isRequired
 };
 

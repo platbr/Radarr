@@ -3,16 +3,16 @@ import PropTypes from 'prop-types';
 import { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { repopulatePage } from 'Utilities/pagePopulator';
-import titleCase from 'Utilities/String/titleCase';
-import { fetchCommands, updateCommand, finishCommand } from 'Store/Actions/commandActions';
 import { setAppValue, setVersion } from 'Store/Actions/appActions';
-import { update, updateItem, removeItem } from 'Store/Actions/baseActions';
+import { removeItem, update, updateItem } from 'Store/Actions/baseActions';
+import { fetchCommands, finishCommand, updateCommand } from 'Store/Actions/commandActions';
 import { fetchMovies } from 'Store/Actions/movieActions';
-import { fetchHealth } from 'Store/Actions/systemActions';
 import { fetchQueue, fetchQueueDetails } from 'Store/Actions/queueActions';
 import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
-import { fetchTags, fetchTagDetails } from 'Store/Actions/tagActions';
+import { fetchHealth } from 'Store/Actions/systemActions';
+import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
+import { repopulatePage } from 'Utilities/pagePopulator';
+import titleCase from 'Utilities/String/titleCase';
 
 function getHandlerName(name) {
   name = titleCase(name);
@@ -120,7 +120,7 @@ class SignalRConnector extends Component {
 
     this.connection.on('receiveMessage', this.onReceiveMessage);
 
-    this.connection.start().then(this.onConnected);
+    this.connection.start().then(this.onStart, this.onStartFail);
   }
 
   componentWillUnmount() {
@@ -242,7 +242,19 @@ class SignalRConnector extends Component {
   //
   // Listeners
 
-  onConnected = () => {
+  onStartFail = (error) => {
+    console.error('[signalR] failed to connect');
+    console.error(error);
+
+    this.props.dispatchSetAppValue({
+      isConnected: false,
+      isReconnecting: false,
+      isDisconnected: false,
+      isRestarting: false
+    });
+  }
+
+  onStart = () => {
     console.debug('[signalR] connected');
 
     this.props.dispatchSetAppValue({

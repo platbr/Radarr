@@ -1,14 +1,16 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component, Fragment } from 'react';
-import { icons, kinds } from 'Helpers/Props';
-import formatDate from 'Utilities/Date/formatDate';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import SpinnerButton from 'Components/Link/SpinnerButton';
 import Icon from 'Components/Icon';
 import Label from 'Components/Label';
+import SpinnerButton from 'Components/Link/SpinnerButton';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
+import InlineMarkdown from 'Components/Markdown/InlineMarkdown';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
+import { icons, kinds } from 'Helpers/Props';
+import formatDate from 'Utilities/Date/formatDate';
+import translate from 'Utilities/String/translate';
 import UpdateChanges from './UpdateChanges';
 import styles from './Updates.css';
 
@@ -28,6 +30,7 @@ class Updates extends Component {
       isInstallingUpdate,
       updateMechanism,
       isDocker,
+      updateMechanismMessage,
       shortDateFormat,
       onInstallLatestPress
     } = this.props;
@@ -38,15 +41,16 @@ class Updates extends Component {
     const hasUpdateToInstall = hasUpdates && _.some(items, { installable: true, latest: true });
     const noUpdateToInstall = hasUpdates && !hasUpdateToInstall;
 
+    const externalUpdaterPrefix = translate('UnableToUpdateRadarrDirectly');
     const externalUpdaterMessages = {
-      external: 'Unable to update Radarr directly, Radarr is configured to use an external update mechanism',
-      apt: 'Unable to update Radarr directly, use apt to install the update',
-      docker: 'Unable to update Radarr directly, update the docker container to receive the update'
+      external: translate('ExternalUpdater'),
+      apt: translate('AptUpdater'),
+      docker: translate('DockerUpdater')
     };
 
     return (
-      <PageContent title="Updates">
-        <PageContentBodyConnector>
+      <PageContent title={translate('Updates')}>
+        <PageContentBody>
           {
             !isPopulated && !hasError &&
               <LoadingIndicator />
@@ -54,7 +58,9 @@ class Updates extends Component {
 
           {
             noUpdates &&
-              <div>No updates are available</div>
+              <div>
+                {translate('NoUpdatesAreAvailable')}
+              </div>
           }
 
           {
@@ -68,7 +74,7 @@ class Updates extends Component {
                       isSpinning={isInstallingUpdate}
                       onPress={onInstallLatestPress}
                     >
-                      Install Latest
+                      {translate('InstallLatest')}
                     </SpinnerButton> :
 
                     <Fragment>
@@ -79,7 +85,7 @@ class Updates extends Component {
                       />
 
                       <div className={styles.message}>
-                        {externalUpdaterMessages[updateMechanism] || externalUpdaterMessages.external}
+                        {externalUpdaterPrefix} <InlineMarkdown data={updateMechanismMessage || externalUpdaterMessages[updateMechanism] || externalUpdaterMessages.external} />
                       </div>
                     </Fragment>
                 }
@@ -104,7 +110,7 @@ class Updates extends Component {
                 />
 
                 <div className={styles.message}>
-                  The latest version of Radarr is already installed
+                  {translate('OnLatestVersion')}
                 </div>
 
                 {
@@ -150,7 +156,7 @@ class Updates extends Component {
                                 className={styles.label}
                                 kind={kinds.SUCCESS}
                               >
-                                Currently Installed
+                                {translate('CurrentlyInstalled')}
                               </Label> :
                               null
                           }
@@ -158,19 +164,21 @@ class Updates extends Component {
 
                         {
                           !hasChanges &&
-                            <div>Maintenance release</div>
+                            <div>
+                              {translate('MaintenanceRelease')}
+                            </div>
                         }
 
                         {
                           hasChanges &&
                             <div className={styles.changes}>
                               <UpdateChanges
-                                title="New"
+                                title={translate('New')}
                                 changes={update.changes.new}
                               />
 
                               <UpdateChanges
-                                title="Fixed"
+                                title={translate('Fixed')}
                                 changes={update.changes.fixed}
                               />
                             </div>
@@ -195,7 +203,7 @@ class Updates extends Component {
                 Failed to update settings
               </div>
           }
-        </PageContentBodyConnector>
+        </PageContentBody>
       </PageContent>
     );
   }
@@ -212,6 +220,7 @@ Updates.propTypes = {
   isInstallingUpdate: PropTypes.bool.isRequired,
   isDocker: PropTypes.bool.isRequired,
   updateMechanism: PropTypes.string,
+  updateMechanismMessage: PropTypes.string,
   shortDateFormat: PropTypes.string.isRequired,
   onInstallLatestPress: PropTypes.func.isRequired
 };

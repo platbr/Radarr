@@ -216,7 +216,6 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         [TestCase(SabnzbdDownloadStatus.Checking)]
         [TestCase(SabnzbdDownloadStatus.Downloading)]
         [TestCase(SabnzbdDownloadStatus.QuickCheck)]
-        [TestCase(SabnzbdDownloadStatus.ToPP)]
         [TestCase(SabnzbdDownloadStatus.Verifying)]
         [TestCase(SabnzbdDownloadStatus.Repairing)]
         [TestCase(SabnzbdDownloadStatus.Fetching)]
@@ -537,7 +536,7 @@ namespace NzbDrone.Core.Test.Download.DownloadClientTests.SabnzbdTests
         public void should_test_failed_if_tv_sorting_empty()
         {
             _config.Misc.enable_tv_sorting = true;
-            _config.Misc.tv_categories = new string[0];
+            _config.Misc.tv_categories = Array.Empty<string>();
 
             var result = new NzbDroneValidationResult(Subject.Test());
 

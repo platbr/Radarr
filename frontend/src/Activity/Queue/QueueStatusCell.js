@@ -1,9 +1,10 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { icons, kinds, tooltipPositions } from 'Helpers/Props';
 import Icon from 'Components/Icon';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import Popover from 'Components/Tooltip/Popover';
+import { icons, kinds, tooltipPositions } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import styles from './QueueStatusCell.css';
 
 function getDetailedPopoverBody(statusMessages) {
@@ -49,71 +50,75 @@ function QueueStatusCell(props) {
   // status === 'downloading'
   let iconName = icons.DOWNLOADING;
   let iconKind = kinds.DEFAULT;
-  let title = 'Downloading';
+  let title = translate('Downloading');
+
+  if (status === 'paused') {
+    iconName = icons.PAUSED;
+    title = translate('Paused');
+  }
+
+  if (status === 'queued') {
+    iconName = icons.QUEUED;
+    title = translate('Queued');
+  }
+
+  if (status === 'completed') {
+    iconName = icons.DOWNLOADED;
+    title = translate('Downloaded');
+
+    if (trackedDownloadState === 'importPending') {
+      title += ` - ${translate('WaitingToImport')}`;
+      iconKind = kinds.PURPLE;
+    }
+
+    if (trackedDownloadState === 'importing') {
+      title += ` - ${translate('Importing')}`;
+      iconKind = kinds.PURPLE;
+    }
+
+    if (trackedDownloadState === 'failedPending') {
+      title += ` - ${translate('WaitingToProcess')}`;
+      iconKind = kinds.DANGER;
+    }
+  }
 
   if (hasWarning) {
     iconKind = kinds.WARNING;
   }
 
-  if (status === 'paused') {
-    iconName = icons.PAUSED;
-    title = 'Paused';
-  }
-
-  if (status === 'queued') {
-    iconName = icons.QUEUED;
-    title = 'Queued';
-  }
-
-  if (status === 'completed') {
-    iconName = icons.DOWNLOADED;
-    title = 'Downloaded';
-
-    if (trackedDownloadState === 'importPending') {
-      title += ' - Waiting to Import';
-    }
-
-    if (trackedDownloadState === 'importing') {
-      title += ' - Importing';
-    }
-
-    if (trackedDownloadState === 'failedPending') {
-      title += ' - Waiting to Process';
-    }
-  }
-
   if (status === 'delay') {
     iconName = icons.PENDING;
-    title = 'Pending';
+    title = translate('Pending');
   }
 
   if (status === 'DownloadClientUnavailable') {
     iconName = icons.PENDING;
     iconKind = kinds.WARNING;
-    title = 'Pending - Download client is unavailable';
+    title = `${translate('Pending')} - ${translate('DownloadClientUnavailable')}`;
   }
 
   if (status === 'failed') {
     iconName = icons.DOWNLOADING;
     iconKind = kinds.DANGER;
-    title = 'Download failed';
+    title = translate('DownloadFailed');
   }
 
   if (status === 'warning') {
     iconName = icons.DOWNLOADING;
     iconKind = kinds.WARNING;
-    title = `Download warning: ${errorMessage || 'check download client for more details'}`;
+    const warningMessage = errorMessage || translate('CheckDownloadClientForDetails');
+    title = translate('DownloadWarning', [warningMessage]);
   }
 
   if (hasError) {
     if (status === 'completed') {
       iconName = icons.DOWNLOAD;
       iconKind = kinds.DANGER;
-      title = `Import failed: ${sourceTitle}`;
+      title = translate('ImportFailed', [sourceTitle]);
     } else {
       iconName = icons.DOWNLOADING;
       iconKind = kinds.DANGER;
-      title = 'Download failed';
+      title = translate('DownloadFailed');
     }
   }
 
@@ -145,8 +150,8 @@ QueueStatusCell.propTypes = {
 };
 
 QueueStatusCell.defaultProps = {
-  trackedDownloadStatus: 'Ok',
-  trackedDownloadState: 'Downloading'
+  trackedDownloadStatus: translate('Ok'),
+  trackedDownloadState: translate('Downloading')
 };
 
 export default QueueStatusCell;

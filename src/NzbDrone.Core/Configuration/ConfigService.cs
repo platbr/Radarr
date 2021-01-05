@@ -5,11 +5,13 @@ using System.Linq;
 using NLog;
 using NzbDrone.Common.EnsureThat;
 using NzbDrone.Common.Http.Proxy;
+using NzbDrone.Core.Configuration;
 using NzbDrone.Core.Configuration.Events;
+using NzbDrone.Core.Languages;
 using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.MetadataSource.SkyHook.Resource;
-using NzbDrone.Core.Parser;
+using NzbDrone.Core.Qualities;
 using NzbDrone.Core.Security;
 
 namespace NzbDrone.Core.Configuration
@@ -116,11 +118,11 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("AvailabilityDelay", value); }
         }
 
-        public int NetImportSyncInterval
+        public int ImportListSyncInterval
         {
-            get { return GetValueInt("NetImportSyncInterval", 60); }
+            get { return GetValueInt("ImportListSyncInterval", 24); }
 
-            set { SetValue("NetImportSyncInterval", value); }
+            set { SetValue("ImportListSyncInterval", value); }
         }
 
         public string ListSyncLevel
@@ -155,11 +157,11 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("MinimumAge", value); }
         }
 
-        public bool AutoDownloadPropers
+        public ProperDownloadTypes DownloadPropersAndRepacks
         {
-            get { return GetValueBoolean("AutoDownloadPropers", true); }
+            get { return GetValueEnum("DownloadPropersAndRepacks", ProperDownloadTypes.PreferAndUpgrade); }
 
-            set { SetValue("AutoDownloadPropers", value); }
+            set { SetValue("DownloadPropersAndRepacks", value); }
         }
 
         public bool EnableCompletedDownloadHandling
@@ -188,12 +190,6 @@ namespace NzbDrone.Core.Configuration
             get { return GetValue("WhitelistedHardcodedSubs", ""); }
 
             set { SetValue("WhitelistedHardcodedSubs", value); }
-        }
-
-        public ParsingLeniencyType ParsingLeniency
-        {
-            get { return GetValueEnum<ParsingLeniencyType>("ParsingLeniency", ParsingLeniencyType.Strict); }
-            set { SetValue("ParsingLeniency", value); }
         }
 
         public bool RemoveCompletedDownloads
@@ -253,7 +249,7 @@ namespace NzbDrone.Core.Configuration
 
         public int DownloadClientHistoryLimit
         {
-            get { return GetValueInt("DownloadClientHistoryLimit", 30); }
+            get { return GetValueInt("DownloadClientHistoryLimit", 60); }
 
             set { SetValue("DownloadClientHistoryLimit", value); }
         }
@@ -321,25 +317,11 @@ namespace NzbDrone.Core.Configuration
             set { SetValue("SetPermissionsLinux", value); }
         }
 
-        public string FileChmod
+        public string ChmodFolder
         {
-            get { return GetValue("FileChmod", "0644"); }
+            get { return GetValue("ChmodFolder", "755"); }
 
-            set { SetValue("FileChmod", value); }
-        }
-
-        public string FolderChmod
-        {
-            get { return GetValue("FolderChmod", "0755"); }
-
-            set { SetValue("FolderChmod", value); }
-        }
-
-        public string ChownUser
-        {
-            get { return GetValue("ChownUser", ""); }
-
-            set { SetValue("ChownUser", value); }
+            set { SetValue("ChmodFolder", value); }
         }
 
         public string ChownGroup
@@ -361,6 +343,13 @@ namespace NzbDrone.Core.Configuration
             get { return GetValue("CalendarWeekColumnHeader", "ddd M/D"); }
 
             set { SetValue("CalendarWeekColumnHeader", value); }
+        }
+
+        public MovieRuntimeFormatType MovieRuntimeFormat
+        {
+            get { return GetValueEnum("MovieRuntimeFormat", MovieRuntimeFormatType.HoursMinutes); }
+
+            set { SetValue("MovieRuntimeFormat", value); }
         }
 
         public string ShortDateFormat
@@ -396,6 +385,20 @@ namespace NzbDrone.Core.Configuration
             get { return GetValueBoolean("EnableColorImpairedMode", false); }
 
             set { SetValue("EnableColorImpairedMode", value); }
+        }
+
+        public int MovieInfoLanguage
+        {
+            get { return GetValueInt("MovieInfoLanguage", (int)Language.English); }
+
+            set { SetValue("MovieInfoLanguage", value); }
+        }
+
+        public int UILanguage
+        {
+            get { return GetValueInt("UILanguage", (int)Language.English); }
+
+            set { SetValue("UILanguage", value); }
         }
 
         public bool CleanupMetadataImages

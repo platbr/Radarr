@@ -5,6 +5,7 @@ using Moq;
 using NUnit.Framework;
 using NzbDrone.Common.Disk;
 using NzbDrone.Core.HealthCheck.Checks;
+using NzbDrone.Core.Localization;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Test.Framework;
 
@@ -13,6 +14,14 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
     [TestFixture]
     public class RootFolderCheckFixture : CoreTest<RootFolderCheck>
     {
+        [SetUp]
+        public void Setup()
+        {
+            Mocker.GetMock<ILocalizationService>()
+                  .Setup(s => s.GetLocalizedString(It.IsAny<string>()))
+                  .Returns("Some Warning Message");
+        }
+
         private void GivenMissingRootFolder()
         {
             var movies = Builder<Movie>.CreateListOfSize(1)
@@ -21,7 +30,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
 
             Mocker.GetMock<IMovieService>()
                   .Setup(s => s.AllMoviePaths())
-                  .Returns(movies.Select(x => x.Path).ToList());
+                  .Returns(movies.ToDictionary(x => x.Id, x => x.Path));
 
             Mocker.GetMock<IDiskProvider>()
                   .Setup(s => s.GetParentFolder(movies.First().Path))
@@ -37,7 +46,7 @@ namespace NzbDrone.Core.Test.HealthCheck.Checks
         {
             Mocker.GetMock<IMovieService>()
                   .Setup(s => s.AllMoviePaths())
-                  .Returns(new List<string>());
+                  .Returns(new Dictionary<int, string>());
 
             Subject.Check().ShouldBeOk();
         }

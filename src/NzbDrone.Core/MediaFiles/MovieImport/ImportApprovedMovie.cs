@@ -120,7 +120,6 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
                     {
                         movieFile.OriginalFilePath = GetOriginalFilePath(downloadClientItem, localMovie);
                         movieFile.SceneName = GetSceneName(downloadClientItem, localMovie);
-
                         var moveResult = _movieFileUpgrader.UpgradeMovieFile(movieFile, localMovie, copyOnly); //TODO: Check if this works
                         oldFiles = moveResult.OldFiles;
                     }
@@ -179,17 +178,23 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
 
         private string GetOriginalFilePath(DownloadClientItem downloadClientItem, LocalMovie localMovie)
         {
-            if (downloadClientItem != null)
+            var path = localMovie.Path;
+
+            if (downloadClientItem != null && !downloadClientItem.OutputPath.IsEmpty)
             {
-                return downloadClientItem.OutputPath.Directory.ToString().GetRelativePath(localMovie.Path);
+                var outputDirectory = downloadClientItem.OutputPath.Directory.ToString();
+
+                if (outputDirectory.IsParentPath(path))
+                {
+                    return outputDirectory.GetRelativePath(path);
+                }
             }
 
-            var path = localMovie.Path;
             var folderMovieInfo = localMovie.FolderMovieInfo;
 
             if (folderMovieInfo != null)
             {
-                var folderPath = path.GetAncestorPath(folderMovieInfo.SimpleReleaseTitle);
+                var folderPath = path.GetAncestorPath(folderMovieInfo.OriginalTitle);
 
                 if (folderPath != null)
                 {
@@ -212,21 +217,24 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
         {
             if (downloadClientItem != null)
             {
-                var title = Parser.Parser.RemoveFileExtension(downloadClientItem.Title);
-
-                var parsedTitle = Parser.Parser.ParseMovieTitle(title, false);
-
-                if (parsedTitle != null)
+                var sceneNameTitle = SceneChecker.GetSceneTitle(downloadClientItem.Title);
+                if (sceneNameTitle != null)
                 {
-                    return title;
+                    return sceneNameTitle;
                 }
             }
 
             var fileName = Path.GetFileNameWithoutExtension(localMovie.Path.CleanFilePath());
-
-            if (SceneChecker.IsSceneTitle(fileName))
+            var sceneNameFile = SceneChecker.GetSceneTitle(fileName);
+            if (sceneNameFile != null)
             {
-                return fileName;
+                return sceneNameFile;
+            }
+
+            var folderTitle = localMovie.FolderMovieInfo?.ReleaseTitle;
+            if (folderTitle.IsNotNullOrWhiteSpace() && SceneChecker.IsSceneTitle(folderTitle))
+            {
+                return folderTitle;
             }
 
             return null;

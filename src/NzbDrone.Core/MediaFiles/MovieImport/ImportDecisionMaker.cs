@@ -61,17 +61,17 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
         {
             var newFiles = filterExistingFiles ? _mediaFileService.FilterExistingFiles(videoFiles.ToList(), movie) : videoFiles.ToList();
 
-            _logger.Debug("Analyzing {0}/{1} files.", newFiles.Count, videoFiles.Count());
+            _logger.Debug("Analyzing {0}/{1} files.", newFiles.Count, videoFiles.Count);
 
             ParsedMovieInfo downloadClientItemInfo = null;
 
             if (downloadClientItem != null)
             {
-                downloadClientItemInfo = Parser.Parser.ParseMovieTitle(downloadClientItem.Title, false);
+                downloadClientItemInfo = Parser.Parser.ParseMovieTitle(downloadClientItem.Title);
                 downloadClientItemInfo = _parsingService.EnhanceMovieInfo(downloadClientItemInfo);
             }
 
-            var nonSampleVideoFileCount = GetNonSampleVideoFileCount(newFiles, movie, downloadClientItemInfo, folderInfo);
+            var nonSampleVideoFileCount = GetNonSampleVideoFileCount(newFiles, movie);
 
             var decisions = new List<ImportDecision>();
 
@@ -97,7 +97,7 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
         {
             ImportDecision decision = null;
 
-            var fileMovieInfo = Parser.Parser.ParseMoviePath(localMovie.Path, false);
+            var fileMovieInfo = Parser.Parser.ParseMoviePath(localMovie.Path);
 
             if (fileMovieInfo != null)
             {
@@ -109,7 +109,7 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
 
             try
             {
-                _aggregationService.Augment(localMovie, otherFiles);
+                _aggregationService.Augment(localMovie, downloadClientItem, otherFiles);
 
                 if (localMovie.Movie == null)
                 {
@@ -180,11 +180,11 @@ namespace NzbDrone.Core.MediaFiles.MovieImport
             return null;
         }
 
-        private int GetNonSampleVideoFileCount(List<string> videoFiles, Movie movie, ParsedMovieInfo downloadClientItemInfo, ParsedMovieInfo folderInfo)
+        private int GetNonSampleVideoFileCount(List<string> videoFiles, Movie movie)
         {
             return videoFiles.Count(file =>
             {
-                var sample = _detectSample.IsSample(movie, file, false);
+                var sample = _detectSample.IsSample(movie, file);
 
                 if (sample == DetectSampleResult.Sample)
                 {

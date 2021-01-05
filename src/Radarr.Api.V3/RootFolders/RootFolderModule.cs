@@ -4,6 +4,7 @@ using NzbDrone.Core.RootFolders;
 using NzbDrone.Core.Validation.Paths;
 using NzbDrone.SignalR;
 using Radarr.Http;
+using Radarr.Http.Extensions;
 
 namespace Radarr.Api.V3.RootFolders
 {
@@ -16,6 +17,7 @@ namespace Radarr.Api.V3.RootFolders
                                 RootFolderValidator rootFolderValidator,
                                 PathExistsValidator pathExistsValidator,
                                 MappedNetworkDriveValidator mappedNetworkDriveValidator,
+                                RecycleBinValidator recycleBinValidator,
                                 StartupFolderValidator startupFolderValidator,
                                 SystemFolderValidator systemFolderValidator,
                                 FolderWritableValidator folderWritableValidator)
@@ -34,6 +36,7 @@ namespace Radarr.Api.V3.RootFolders
                            .SetValidator(rootFolderValidator)
                            .SetValidator(mappedNetworkDriveValidator)
                            .SetValidator(startupFolderValidator)
+                           .SetValidator(recycleBinValidator)
                            .SetValidator(pathExistsValidator)
                            .SetValidator(systemFolderValidator)
                            .SetValidator(folderWritableValidator);
@@ -41,7 +44,9 @@ namespace Radarr.Api.V3.RootFolders
 
         private RootFolderResource GetRootFolder(int id)
         {
-            return _rootFolderService.Get(id).ToResource();
+            var timeout = Context?.Request?.GetBooleanQueryParameter("timeout", true) ?? true;
+
+            return _rootFolderService.Get(id, timeout).ToResource();
         }
 
         private int CreateRootFolder(RootFolderResource rootFolderResource)

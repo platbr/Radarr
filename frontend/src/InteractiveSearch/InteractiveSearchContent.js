@@ -1,65 +1,73 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import { icons, sortDirections } from 'Helpers/Props';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Icon from 'Components/Icon';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
-import InteractiveSearchRow from './InteractiveSearchRow';
+import { icons, sortDirections } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
+import InteractiveSearchRowConnector from './InteractiveSearchRowConnector';
 import styles from './InteractiveSearchContent.css';
 
 const columns = [
   {
     name: 'protocol',
-    label: 'Source',
+    label: translate('Source'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'age',
-    label: 'Age',
+    label: translate('Age'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'title',
-    label: 'Title',
+    label: translate('Title'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'indexer',
-    label: 'Indexer',
+    label: translate('Indexer'),
     isSortable: true,
     isVisible: true
   },
   {
+    name: 'history',
+    label: translate('History'),
+    isSortable: true,
+    fixedSortDirection: sortDirections.ASCENDING,
+    isVisible: true
+  },
+  {
     name: 'size',
-    label: 'Size',
+    label: translate('Size'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'peers',
-    label: 'Peers',
+    label: translate('Peers'),
     isSortable: true,
     isVisible: true
   },
   {
-    name: 'languageWeight',
-    label: 'Language',
+    name: 'languages',
+    label: translate('Language'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'qualityWeight',
-    label: 'Quality',
+    label: translate('Quality'),
     isSortable: true,
     isVisible: true
   },
   {
     name: 'customFormat',
-    label: 'Formats',
+    label: translate('Formats'),
     isSortable: true,
     isVisible: true
   },
@@ -67,7 +75,7 @@ const columns = [
     name: 'customFormatScore',
     label: React.createElement(Icon, {
       name: icons.SCORE,
-      title: 'Custom Format score'
+      title: translate('CustomFormatScore')
     }),
     isSortable: true,
     isVisible: true
@@ -120,21 +128,21 @@ function InteractiveSearchContent(props) {
       {
         !isFetching && !!error &&
           <div>
-            Unable to load results for this movie search. Try again later
+            {translate('UnableToLoadResultsIntSearch')}
           </div>
       }
 
       {
         !isFetching && isPopulated && !totalReleasesCount &&
           <div>
-            No results found
+            {translate('NoResultsFound')}
           </div>
       }
 
       {
         !!totalReleasesCount && isPopulated && !items.length &&
           <div>
-            All results are hidden by the applied filter
+            {translate('AllResultsHiddenFilter')}
           </div>
       }
 
@@ -150,7 +158,7 @@ function InteractiveSearchContent(props) {
               {
                 items.map((item) => {
                   return (
-                    <InteractiveSearchRow
+                    <InteractiveSearchRowConnector
                       key={item.guid}
                       {...item}
                       searchPayload={searchPayload}
@@ -168,7 +176,7 @@ function InteractiveSearchContent(props) {
       {
         totalReleasesCount !== items.length && !!items.length &&
           <div className={styles.filteredMessage}>
-            Some results are hidden by the applied filter
+            {translate('SomeResultsHiddenFilter')}
           </div>
       }
     </div>

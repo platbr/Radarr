@@ -1,14 +1,15 @@
+import { push } from 'connected-react-router';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { createSelector } from 'reselect';
-import { push } from 'connected-react-router';
-import getErrorMessage from 'Utilities/Object/getErrorMessage';
-import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import NotFound from 'Components/NotFound';
+import PageContent from 'Components/Page/PageContent';
+import PageContentBody from 'Components/Page/PageContentBody';
+import getErrorMessage from 'Utilities/Object/getErrorMessage';
+import translate from 'Utilities/String/translate';
 import MovieDetailsConnector from './MovieDetailsConnector';
 import styles from './MovieDetails.css';
 
@@ -74,9 +75,9 @@ class MovieDetailsPageConnector extends Component {
     if (isFetching && !isPopulated) {
       return (
         <PageContent title='loading'>
-          <PageContentBodyConnector>
+          <PageContentBody>
             <LoadingIndicator />
-          </PageContentBodyConnector>
+          </PageContentBody>
         </PageContent>
       );
     }
@@ -84,7 +85,7 @@ class MovieDetailsPageConnector extends Component {
     if (!isFetching && !!error) {
       return (
         <div className={styles.errorMessage}>
-          {getErrorMessage(error, 'Failed to load movie from API')}
+          {getErrorMessage(error, translate('FailedToLoadMovieFromAPI'))}
         </div>
       );
     }
@@ -92,7 +93,7 @@ class MovieDetailsPageConnector extends Component {
     if (!titleSlug) {
       return (
         <NotFound
-          message="Sorry, that movie cannot be found."
+          message={translate('SorryThatMovieCannotBeFound')}
         />
       );
     }

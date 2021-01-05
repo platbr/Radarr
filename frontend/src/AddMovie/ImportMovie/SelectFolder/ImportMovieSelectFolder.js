@@ -1,32 +1,33 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { icons, kinds, sizes } from 'Helpers/Props';
-import Button from 'Components/Link/Button';
 import FieldSet from 'Components/FieldSet';
-import Icon from 'Components/Icon';
-import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FileBrowserModal from 'Components/FileBrowser/FileBrowserModal';
+import Icon from 'Components/Icon';
+import Button from 'Components/Link/Button';
+import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
-import PageContentBodyConnector from 'Components/Page/PageContentBodyConnector';
+import PageContentBody from 'Components/Page/PageContentBody';
 import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
+import { icons, kinds, sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import ImportMovieRootFolderRowConnector from './ImportMovieRootFolderRowConnector';
 import styles from './ImportMovieSelectFolder.css';
 
 const rootFolderColumns = [
   {
     name: 'path',
-    label: 'Path',
+    label: translate('Path'),
     isVisible: true
   },
   {
     name: 'freeSpace',
-    label: 'Free Space',
+    label: translate('FreeSpace'),
     isVisible: true
   },
   {
     name: 'unmappedFolders',
-    label: 'Unmapped Folders',
+    label: translate('UnmappedFolders'),
     isVisible: true
   },
   {
@@ -76,8 +77,8 @@ class ImportMovieSelectFolder extends Component {
     } = this.props;
 
     return (
-      <PageContent title="Import Movies">
-        <PageContentBodyConnector>
+      <PageContent title={translate('ImportMovies')}>
+        <PageContentBody>
           {
             isFetching && !isPopulated &&
               <LoadingIndicator />
@@ -85,32 +86,31 @@ class ImportMovieSelectFolder extends Component {
 
           {
             !isFetching && !!error &&
-              <div>Unable to load root folders</div>
+              <div>
+                {translate('UnableToLoadRootFolders')}
+              </div>
           }
 
           {
             !error && isPopulated &&
               <div>
                 <div className={styles.header}>
-                  Import movies you already have
+                  {translate('ImportHeader')}
                 </div>
 
                 <div className={styles.tips}>
-                  Some tips to ensure the import goes smoothly:
+                  {translate('ImportTipsMessage')}
                   <ul>
-                    <li className={styles.tip}>
-                      Make sure that your files include the quality in their filenames. eg. <span className={styles.code}>movie.2008.bluray.mkv</span>
-                    </li>
-                    <li className={styles.tip}>
-                      Point Radarr to the folder containing all of your movies, not a specific one. eg. <span className={styles.code}>"{isWindows ? 'C:\\movies' : '/movies'}"</span> and not <span className={styles.code}>"{isWindows ? 'C:\\movies\\the matrix' : '/movies/the matrix'}"</span>
-                    </li>
+                    <li className={styles.tip} dangerouslySetInnerHTML={{ __html: translate('ImportIncludeQuality', ['<code>movie.2008.bluray.mkv</code>']) }} />
+                    <li className={styles.tip} dangerouslySetInnerHTML={{ __html: translate('ImportRootPath', [`<code>${isWindows ? 'C:\\movies' : '/movies'}</code>`, `<code>${isWindows ? 'C:\\movies\\the matrix' : '/movies/the matrix'}</code>`]) }} />
+                    <li className={styles.tip}>{translate('ImportNotForDownloads')}</li>
                   </ul>
                 </div>
 
                 {
                   items.length > 0 ?
                     <div className={styles.recentFolders}>
-                      <FieldSet legend="Recent Folders">
+                      <FieldSet legend={translate('RecentFolders')}>
                         <Table
                           columns={rootFolderColumns}
                         >
@@ -141,7 +141,7 @@ class ImportMovieSelectFolder extends Component {
                           className={styles.importButtonIcon}
                           name={icons.DRIVE}
                         />
-                        Choose another folder
+                        {translate('ChooseAnotherFolder')}
                       </Button>
                     </div> :
 
@@ -155,7 +155,7 @@ class ImportMovieSelectFolder extends Component {
                           className={styles.importButtonIcon}
                           name={icons.DRIVE}
                         />
-                        Start Import
+                        {translate('StartImport')}
                       </Button>
                     </div>
                 }
@@ -169,7 +169,7 @@ class ImportMovieSelectFolder extends Component {
                 />
               </div>
           }
-        </PageContentBodyConnector>
+        </PageContentBody>
       </PageContent>
     );
   }

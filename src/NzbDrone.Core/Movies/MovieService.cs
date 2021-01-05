@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using NLog;
 using NzbDrone.Common.EnsureThat;
@@ -11,8 +10,6 @@ using NzbDrone.Core.MediaFiles;
 using NzbDrone.Core.MediaFiles.Events;
 using NzbDrone.Core.Messaging.Events;
 using NzbDrone.Core.Movies.Events;
-using NzbDrone.Core.NetImport.ImportExclusions;
-using NzbDrone.Core.Organizer;
 using NzbDrone.Core.Parser;
 using NzbDrone.Core.Parser.RomanNumerals;
 
@@ -30,21 +27,26 @@ namespace NzbDrone.Core.Movies
         List<Movie> FindByTmdbId(List<int> tmdbids);
         Movie FindByTitle(string title);
         Movie FindByTitle(string title, int year);
-        Movie FindByTitleInexact(string title, int? year);
+        Movie FindByTitle(string title, int? year, string arabicTitle, string romanTitle, List<Movie> candidates);
+        List<Movie> FindByTitleCandidates(string title, out string roman, out string arabic);
         Movie FindByTitleSlug(string slug);
         Movie FindByPath(string path);
-        List<string> AllMoviePaths();
+        Dictionary<int, string> AllMoviePaths();
+        List<int> AllMovieTmdbIds();
+        Dictionary<int, string> AllMovieTitleSlugs();
         bool MovieExists(Movie movie);
         List<Movie> GetMoviesByFileId(int fileId);
         List<Movie> GetMoviesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored);
         PagingSpec<Movie> MoviesWithoutFiles(PagingSpec<Movie> pagingSpec);
         void SetFileId(Movie movie, MovieFile movieFile);
         void DeleteMovie(int movieId, bool deleteFiles, bool addExclusion = false);
+        void DeleteMovies(List<int> movieIds, bool deleteFiles, bool addExclusion = false);
         List<Movie> GetAllMovies();
-        List<Movie> AllForTag(int tagId);
+        Dictionary<int, List<int>> AllMovieTags();
         Movie UpdateMovie(Movie movie);
         List<Movie> UpdateMovie(List<Movie> movie, bool useExistingRelativeFolder);
         List<Movie> FilterExistingMovies(List<Movie> movies);
+        List<int> GetRecommendedTmdbIds();
         bool MoviePathExists(string folder);
         void RemoveAddOptions(Movie movie);
     }
@@ -55,24 +57,18 @@ namespace NzbDrone.Core.Movies
         private readonly IMovieRepository _movieRepository;
         private readonly IConfigService _configService;
         private readonly IEventAggregator _eventAggregator;
-        private readonly IBuildFileNames _fileNameBuilder;
-        private readonly IImportExclusionsService _exclusionService;
         private readonly IBuildMoviePaths _moviePathBuilder;
         private readonly Logger _logger;
 
         public MovieService(IMovieRepository movieRepository,
-                             IEventAggregator eventAggregator,
-                             IBuildFileNames fileNameBuilder,
-                             IConfigService configService,
-                             IImportExclusionsService exclusionService,
-                             IBuildMoviePaths moviePathBuilder,
-                             Logger logger)
+                            IEventAggregator eventAggregator,
+                            IConfigService configService,
+                            IBuildMoviePaths moviePathBuilder,
+                            Logger logger)
         {
             _movieRepository = movieRepository;
             _eventAggregator = eventAggregator;
-            _fileNameBuilder = fileNameBuilder;
             _configService = configService;
-            _exclusionService = exclusionService;
             _moviePathBuilder = moviePathBuilder;
             _logger = logger;
         }
@@ -94,20 +90,6 @@ namespace NzbDrone.Core.Movies
 
         public Movie AddMovie(Movie newMovie)
         {
-            Ensure.That(newMovie, () => newMovie).IsNotNull();
-
-            if (string.IsNullOrWhiteSpace(newMovie.Path))
-            {
-                var folderName = _fileNameBuilder.GetMovieFolder(newMovie);
-                newMovie.Path = Path.Combine(newMovie.RootFolderPath, folderName);
-            }
-
-            _logger.Info("Adding Movie {0} Path: [{1}]", newMovie, newMovie.Path);
-
-            newMovie.CleanTitle = newMovie.Title.CleanSeriesTitle();
-            newMovie.SortTitle = MovieTitleNormalizer.Normalize(newMovie.Title, newMovie.TmdbId);
-            newMovie.Added = DateTime.UtcNow;
-
             _movieRepository.Insert(newMovie);
             _eventAggregator.PublishEvent(new MovieAddedEvent(GetMovie(newMovie.Id)));
 
@@ -116,33 +98,7 @@ namespace NzbDrone.Core.Movies
 
         public List<Movie> AddMovies(List<Movie> newMovies)
         {
-            newMovies.ForEach(m => Ensure.That(m, () => m).IsNotNull());
-
-            newMovies.ForEach(m =>
-            {
-                if (string.IsNullOrWhiteSpace(m.Path))
-                {
-                    var folderName = _fileNameBuilder.GetMovieFolder(m);
-                    m.Path = Path.Combine(m.RootFolderPath, folderName);
-                }
-
-                m.CleanTitle = m.Title.CleanSeriesTitle();
-                m.SortTitle = MovieTitleNormalizer.Normalize(m.Title, m.TmdbId);
-                m.Added = DateTime.UtcNow;
-            });
-
-            var potentialMovieCount = newMovies.Count;
-
-            newMovies = newMovies.DistinctBy(movie => movie.TmdbId).ToList(); // Ensure we don't add the same movie twice
-
-            var existingMovies = FindByTmdbId(newMovies.Select(x => x.TmdbId).ToList());
-
-            newMovies = newMovies.ExceptBy(n => n.TmdbId, existingMovies, e => e.TmdbId, EqualityComparer<int>.Default).ToList(); // Ensure we don't add a movie that already exists
-
             _movieRepository.InsertMany(newMovies);
-
-            _logger.Debug("Adding {0} movies, {1} duplicates detected and skipped", newMovies.Count, potentialMovieCount - newMovies.Count);
-
             _eventAggregator.PublishEvent(new MoviesImportedEvent(newMovies.Select(s => s.Id).ToList()));
 
             return newMovies;
@@ -150,49 +106,68 @@ namespace NzbDrone.Core.Movies
 
         public Movie FindByTitle(string title)
         {
-            return FindByTitle(title.CleanSeriesTitle(), null);
+            var candidates = FindByTitleCandidates(title, out var arabicTitle, out var romanTitle);
+
+            return FindByTitle(title, null, arabicTitle, romanTitle, candidates);
         }
 
         public Movie FindByTitle(string title, int year)
         {
-            return FindByTitle(title.CleanSeriesTitle(), year as int?);
+            var candidates = FindByTitleCandidates(title, out var arabicTitle, out var romanTitle);
+
+            return FindByTitle(title, year, arabicTitle, romanTitle, candidates);
         }
 
-        private Movie FindByTitle(string cleanTitle, int? year)
+        public Movie FindByTitle(string cleanTitle, int? year, string arabicTitle, string romanTitle, List<Movie> candidates)
         {
-            cleanTitle = cleanTitle.ToLowerInvariant();
-            string cleanTitleWithRomanNumbers = cleanTitle;
-            string cleanTitleWithArabicNumbers = cleanTitle;
-
-            foreach (ArabicRomanNumeral arabicRomanNumeral in RomanNumeralParser.GetArabicRomanNumeralsMapping())
-            {
-                string arabicNumber = arabicRomanNumeral.ArabicNumeralAsString;
-                string romanNumber = arabicRomanNumeral.RomanNumeral;
-                cleanTitleWithRomanNumbers = cleanTitleWithRomanNumbers.Replace(arabicNumber, romanNumber);
-                cleanTitleWithArabicNumbers = cleanTitleWithArabicNumbers.Replace(romanNumber, arabicNumber);
-            }
-
-            var candidates = _movieRepository.FindByTitles(new List<string> { cleanTitle, cleanTitleWithArabicNumbers, cleanTitleWithRomanNumbers });
-
             var result = candidates.Where(x => x.CleanTitle == cleanTitle).FirstWithYear(year);
 
             if (result == null)
             {
                 result =
-                    candidates.Where(movie => movie.CleanTitle == cleanTitleWithArabicNumbers).FirstWithYear(year) ??
-                    candidates.Where(movie => movie.CleanTitle == cleanTitleWithRomanNumbers).FirstWithYear(year);
+                    candidates.Where(movie => movie.CleanTitle == arabicTitle).FirstWithYear(year) ??
+                    candidates.Where(movie => movie.CleanTitle == romanTitle).FirstWithYear(year);
+            }
 
-                if (result == null)
-                {
-                    result = candidates
-                        .Where(m => m.AlternativeTitles.Any(t => t.CleanTitle == cleanTitle ||
-                                                            t.CleanTitle == cleanTitleWithArabicNumbers ||
-                                                            t.CleanTitle == cleanTitleWithRomanNumbers))
-                        .FirstWithYear(year);
-                }
+            if (result == null)
+            {
+                result = candidates
+                    .Where(m => m.AlternativeTitles.Any(t => t.CleanTitle == cleanTitle ||
+                                                        t.CleanTitle == arabicTitle ||
+                                                        t.CleanTitle == romanTitle))
+                    .FirstWithYear(year);
+            }
+
+            if (result == null)
+            {
+                result = candidates
+                    .Where(m => m.Translations.Any(t => t.CleanTitle == cleanTitle ||
+                                                        t.CleanTitle == arabicTitle ||
+                                                        t.CleanTitle == romanTitle))
+                    .FirstWithYear(year);
             }
 
             return result;
+        }
+
+        public List<Movie> FindByTitleCandidates(string title, out string arabicTitle, out string romanTitle)
+        {
+            var cleanTitle = title.CleanMovieTitle().ToLowerInvariant();
+            romanTitle = cleanTitle;
+            arabicTitle = cleanTitle;
+
+            foreach (var arabicRomanNumeral in RomanNumeralParser.GetArabicRomanNumeralsMapping())
+            {
+                var arabicNumber = arabicRomanNumeral.ArabicNumeralAsString;
+                var romanNumber = arabicRomanNumeral.RomanNumeral;
+
+                romanTitle = romanTitle.Replace(arabicNumber, romanNumber);
+                arabicTitle = arabicTitle.Replace(romanNumber, arabicNumber);
+            }
+
+            romanTitle = romanTitle.ToLowerInvariant();
+
+            return _movieRepository.FindByTitles(new List<string> { cleanTitle, arabicTitle, romanTitle });
         }
 
         public Movie FindByImdbId(string imdbid)
@@ -210,78 +185,47 @@ namespace NzbDrone.Core.Movies
             return _movieRepository.FindByTmdbId(tmdbids);
         }
 
-        private List<Movie> FindByTitleInexactAll(string title)
-        {
-            // find any movie clean title within the provided release title
-            string cleanTitle = title.CleanSeriesTitle();
-            var list = _movieRepository.FindByTitleInexact(cleanTitle);
-            if (!list.Any())
-            {
-                // no movie matched
-                return list;
-            }
-
-            // build ordered list of movie by position in the search string
-            var query =
-                list.Select(movie => new
-                {
-                    position = cleanTitle.IndexOf(movie.CleanTitle),
-                    length = movie.CleanTitle.Length,
-                    movie = movie
-                })
-                    .Where(s => (s.position >= 0))
-                    .ToList()
-                    .OrderBy(s => s.position)
-                    .ThenByDescending(s => s.length)
-                    .Select(s => s.movie)
-                    .ToList();
-
-            return query;
-        }
-
-        public Movie FindByTitleInexact(string title)
-        {
-            var query = FindByTitleInexactAll(title);
-
-            // get the leftmost movie that is the longest
-            // movie are usually the first thing in release title, so we select the leftmost and longest match
-            var match = query.First();
-
-            _logger.Debug("Multiple movie matched {0} from title {1}", match.Title, title);
-            foreach (var entry in query)
-            {
-                _logger.Debug("Multiple movie match candidate: {0} cleantitle: {1}", entry.Title, entry.CleanTitle);
-            }
-
-            return match;
-        }
-
-        public Movie FindByTitleInexact(string title, int? year)
-        {
-            return FindByTitleInexactAll(title).FirstWithYear(year);
-        }
-
         public Movie FindByPath(string path)
         {
             return _movieRepository.FindByPath(path);
         }
 
-        public List<string> AllMoviePaths()
+        public Dictionary<int, string> AllMoviePaths()
         {
             return _movieRepository.AllMoviePaths();
+        }
+
+        public Dictionary<int, string> AllMovieTitleSlugs()
+        {
+            return _movieRepository.AllMovieTitleSlugs();
+        }
+
+        public List<int> AllMovieTmdbIds()
+        {
+            return _movieRepository.AllMovieTmdbIds();
         }
 
         public void DeleteMovie(int movieId, bool deleteFiles, bool addExclusion = false)
         {
             var movie = _movieRepository.Get(movieId);
-            if (addExclusion)
-            {
-                _exclusionService.AddExclusion(new ImportExclusion { TmdbId = movie.TmdbId, MovieTitle = movie.Title, MovieYear = movie.Year });
-            }
 
             _movieRepository.Delete(movieId);
-            _eventAggregator.PublishEvent(new MovieDeletedEvent(movie, deleteFiles));
-            _logger.Info("Deleted movie {}", movie);
+            _eventAggregator.PublishEvent(new MoviesDeletedEvent(new List<Movie> { movie }, deleteFiles, addExclusion));
+            _logger.Info("Deleted movie {0}", movie);
+        }
+
+        public void DeleteMovies(List<int> movieIds, bool deleteFiles, bool addExclusion = false)
+        {
+            var moviesToDelete = _movieRepository.Get(movieIds).ToList();
+
+            _movieRepository.DeleteMany(movieIds);
+
+            _eventAggregator.PublishEvent(new MoviesDeletedEvent(moviesToDelete, deleteFiles, addExclusion));
+
+            foreach (var movie in moviesToDelete)
+            {
+                _logger.Info("Deleted movie {0}", movie);
+            }
         }
 
         public List<Movie> GetAllMovies()
@@ -289,10 +233,9 @@ namespace NzbDrone.Core.Movies
             return _movieRepository.All().ToList();
         }
 
-        public List<Movie> AllForTag(int tagId)
+        public Dictionary<int, List<int>> AllMovieTags()
         {
-            return GetAllMovies().Where(s => s.Tags.Contains(tagId))
-                                 .ToList();
+            return _movieRepository.AllMovieTags();
         }
 
         public Movie UpdateMovie(Movie movie)
@@ -392,20 +335,23 @@ namespace NzbDrone.Core.Movies
                 }
             }
 
-            if (movie.Year > 1850)
+            if (movie.Title.IsNotNullOrWhiteSpace())
             {
-                result = FindByTitle(movie.Title.CleanSeriesTitle(), movie.Year);
-                if (result != null)
+                if (movie.Year > 1850)
                 {
-                    return true;
+                    result = FindByTitle(movie.Title.CleanMovieTitle(), movie.Year);
+                    if (result != null)
+                    {
+                        return true;
+                    }
                 }
-            }
-            else
-            {
-                result = FindByTitle(movie.Title.CleanSeriesTitle());
-                if (result != null)
+                else
                 {
-                    return true;
+                    result = FindByTitle(movie.Title.CleanMovieTitle());
+                    if (result != null)
+                    {
+                        return true;
+                    }
                 }
             }
 
@@ -423,9 +369,14 @@ namespace NzbDrone.Core.Movies
 
             var ret = withTmdbid.ExceptBy(m => m.TmdbId, allMovies, m => m.TmdbId, EqualityComparer<int>.Default)
                 .Union(withImdbid.ExceptBy(m => m.ImdbId, allMovies, m => m.ImdbId, EqualityComparer<string>.Default))
-                .Union(rest.ExceptBy(m => m.Title.CleanSeriesTitle(), allMovies, m => m.CleanTitle, EqualityComparer<string>.Default)).ToList();
+                .Union(rest.ExceptBy(m => m.Title.CleanMovieTitle(), allMovies, m => m.CleanTitle, EqualityComparer<string>.Default)).ToList();
 
             return ret;
+        }
+
+        public List<int> GetRecommendedTmdbIds()
+        {
+            return _movieRepository.GetRecommendations();
         }
 
         public void Handle(MovieFileAddedEvent message)

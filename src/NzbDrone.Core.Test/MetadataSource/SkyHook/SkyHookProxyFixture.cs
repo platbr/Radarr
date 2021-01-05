@@ -1,6 +1,5 @@
 using FluentAssertions;
 using NUnit.Framework;
-using NzbDrone.Core.MetadataSource;
 using NzbDrone.Core.MetadataSource.SkyHook;
 using NzbDrone.Core.Movies;
 using NzbDrone.Core.Test.Framework;
@@ -16,7 +15,6 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
         public void Setup()
         {
             UseRealHttp();
-            Mocker.SetConstant<ITmdbConfigService>(Mocker.Resolve<TmdbConfigService>());
         }
 
         [TestCase(11, "Star Wars")]
@@ -24,7 +22,7 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
         [TestCase(70981, "Prometheus")]
         public void should_be_able_to_get_movie_detail(int tmdbId, string title)
         {
-            var details = Subject.GetMovieInfo(tmdbId, null, false).Item1;
+            var details = Subject.GetMovieInfo(tmdbId).Item1;
 
             ValidateMovie(details);
 
@@ -35,7 +33,7 @@ namespace NzbDrone.Core.Test.MetadataSource.SkyHook
         {
             movie.Should().NotBeNull();
             movie.Title.Should().NotBeNullOrWhiteSpace();
-            movie.CleanTitle.Should().Be(Parser.Parser.CleanSeriesTitle(movie.Title));
+            movie.CleanTitle.Should().Be(Parser.Parser.CleanMovieTitle(movie.Title));
             movie.SortTitle.Should().Be(MovieTitleNormalizer.Normalize(movie.Title, movie.TmdbId));
             movie.Overview.Should().NotBeNullOrWhiteSpace();
             movie.InCinemas.Should().HaveValue();

@@ -40,7 +40,16 @@ namespace NzbDrone.Core.Notifications.Xbmc
 
         public string UpdateLibrary(XbmcSettings settings, string path)
         {
-            var response = ProcessRequest(settings, "VideoLibrary.Scan", path);
+            string response;
+
+            if (path == null)
+            {
+                response = ProcessRequest(settings, "VideoLibrary.Scan");
+            }
+            else
+            {
+                response = ProcessRequest(settings, "VideoLibrary.Scan", path);
+            }
 
             return Json.Deserialize<XbmcJsonResult<string>>(response).Result;
         }
@@ -59,7 +68,7 @@ namespace NzbDrone.Core.Notifications.Xbmc
 
         public List<XbmcMovie> GetMovies(XbmcSettings settings)
         {
-            var response = ProcessRequest(settings, "VideoLibrary.GetMovies", new[] { "file", "imdbnumber" });
+            var response = ProcessRequest(settings, "VideoLibrary.GetMovies", new List<string> { "file", "imdbnumber" });
 
             return Json.Deserialize<MovieResponse>(response).Result.Movies;
         }

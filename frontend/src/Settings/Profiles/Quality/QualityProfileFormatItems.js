@@ -1,11 +1,12 @@
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
-import { sizes } from 'Helpers/Props';
 import FormGroup from 'Components/Form/FormGroup';
-import FormLabel from 'Components/Form/FormLabel';
 import FormInputHelpText from 'Components/Form/FormInputHelpText';
+import FormLabel from 'Components/Form/FormLabel';
 import Link from 'Components/Link/Link';
+import { sizes } from 'Helpers/Props';
+import translate from 'Utilities/String/translate';
 import QualityProfileFormatItem from './QualityProfileFormatItem';
 import styles from './QualityProfileFormatItems.css';
 
@@ -67,8 +68,8 @@ class QualityProfileFormatItems extends Component {
     if (profileFormatItems.length < 1) {
       return (
         <div className={styles.addCustomFormatMessage}>
-          Want more control over which downloads are preferred? Add a
-          <Link to='/settings/customformats'> Custom Format </Link>
+          {translate('MoreControlCFText')}
+          <Link to='/settings/customformats'> {translate('CustomFormat')} </Link>
         </div>
       );
     }
@@ -76,12 +77,12 @@ class QualityProfileFormatItems extends Component {
     return (
       <FormGroup size={sizes.EXTRA_SMALL}>
         <FormLabel size={sizes.SMALL}>
-          Custom Formats
+          {translate('CustomFormats')}
         </FormLabel>
 
         <div>
           <FormInputHelpText
-            text='Radarr scores each release using the sum of scores for matching custom formats. If a new release would improve the score, at the same or better quality, then Radarr will grab it.'
+            text={translate('CustomFormatHelpText')}
           />
 
           {
@@ -113,10 +114,10 @@ class QualityProfileFormatItems extends Component {
           <div className={styles.formats}>
             <div className={styles.headerContainer}>
               <div className={styles.headerTitle}>
-                Custom Format
+                {translate('CustomFormat')}
               </div>
               <div className={styles.headerScore}>
-                Score
+                {translate('Score')}
               </div>
             </div>
             {

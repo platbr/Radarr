@@ -8,14 +8,13 @@ using NzbDrone.Core.Configuration.Events;
 using NzbDrone.Core.Download;
 using NzbDrone.Core.HealthCheck;
 using NzbDrone.Core.Housekeeping;
+using NzbDrone.Core.ImportLists;
 using NzbDrone.Core.Indexers;
 using NzbDrone.Core.Lifecycle;
 using NzbDrone.Core.MediaFiles.Commands;
 using NzbDrone.Core.Messaging.Commands;
 using NzbDrone.Core.Messaging.Events;
-using NzbDrone.Core.MetadataSource.PreDB;
 using NzbDrone.Core.Movies.Commands;
-using NzbDrone.Core.NetImport;
 using NzbDrone.Core.Update.Commands;
 
 namespace NzbDrone.Core.Jobs
@@ -31,14 +30,12 @@ namespace NzbDrone.Core.Jobs
     {
         private readonly IScheduledTaskRepository _scheduledTaskRepository;
         private readonly IConfigService _configService;
-        private readonly IConfigFileProvider _configFileProvider;
         private readonly Logger _logger;
 
-        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, IConfigFileProvider configFileProvider, Logger logger)
+        public TaskManager(IScheduledTaskRepository scheduledTaskRepository, IConfigService configService, Logger logger)
         {
             _scheduledTaskRepository = scheduledTaskRepository;
             _configService = configService;
-            _configFileProvider = configFileProvider;
             _logger = logger;
         }
 
@@ -62,20 +59,10 @@ namespace NzbDrone.Core.Jobs
 
         public void Handle(ApplicationStartedEvent message)
         {
-            int updateInterval = 6 * 60;
-
-            if (_configFileProvider.Branch == "nightly")
-            {
-                updateInterval = 30;
-            }
-
             var defaultTasks = new[]
                 {
-                    new ScheduledTask { Interval = 1 * 60, TypeName = typeof(PreDBSyncCommand).FullName },
                     new ScheduledTask { Interval = 5, TypeName = typeof(MessagingCleanupCommand).FullName },
-                    new ScheduledTask { Interval = updateInterval, TypeName = typeof(ApplicationCheckUpdateCommand).FullName },
-
-                    // new ScheduledTask { Interval = 3 * 60, TypeName = typeof(UpdateSceneMappingCommand).FullName },
+                    new ScheduledTask { Interval = 6 * 60, TypeName = typeof(ApplicationCheckUpdateCommand).FullName },
                     new ScheduledTask { Interval = 6 * 60, TypeName = typeof(CheckHealthCommand).FullName },
                     new ScheduledTask { Interval = 24 * 60, TypeName = typeof(RefreshMovieCommand).FullName },
                     new ScheduledTask { Interval = 24 * 60, TypeName = typeof(HousekeepingCommand).FullName },
@@ -95,8 +82,8 @@ namespace NzbDrone.Core.Jobs
 
                     new ScheduledTask
                     {
-                        Interval = GetNetImportSyncInterval(),
-                        TypeName = typeof(NetImportSyncCommand).FullName
+                        Interval = GetImportListSyncInterval(),
+                        TypeName = typeof(ImportListSyncCommand).FullName
                     },
 
                     new ScheduledTask
@@ -108,7 +95,7 @@ namespace NzbDrone.Core.Jobs
 
             var currentTasks = _scheduledTaskRepository.All().ToList();
 
-            _logger.Trace("Initializing jobs. Available: {0} Existing: {1}", defaultTasks.Count(), currentTasks.Count());
+            _logger.Trace("Initializing jobs. Available: {0} Existing: {1}", defaultTasks.Length, currentTasks.Count);
 
             foreach (var job in currentTasks)
             {
@@ -158,21 +145,12 @@ namespace NzbDrone.Core.Jobs
             return interval;
         }
 
-        private int GetNetImportSyncInterval()
+        private int GetImportListSyncInterval()
         {
-            var interval = _configService.NetImportSyncInterval;
+            //Enforce 6 hour min on list sync
+            var interval = Math.Max(_configService.ImportListSyncInterval, 6);
 
-            if (interval > 0 && interval < 10)
-            {
-                return 10;
-            }
-
-            if (interval < 0)
-            {
-                return 0;
-            }
-
-            return interval;
+            return interval * 60;
         }
 
         public void Handle(CommandExecutedEvent message)
@@ -191,13 +169,16 @@ namespace NzbDrone.Core.Jobs
             var rss = _scheduledTaskRepository.GetDefinition(typeof(RssSyncCommand));
             rss.Interval = _configService.RssSyncInterval;
 
-            var netImport = _scheduledTaskRepository.GetDefinition(typeof(NetImportSyncCommand));
-            netImport.Interval = _configService.NetImportSyncInterval;
+            var importList = _scheduledTaskRepository.GetDefinition(typeof(ImportListSyncCommand));
+            importList.Interval = GetImportListSyncInterval();
+
+            var backup = _scheduledTaskRepository.GetDefinition(typeof(BackupCommand));
+            backup.Interval = GetBackupInterval();
 
             var refreshMonitoredDownloads = _scheduledTaskRepository.GetDefinition(typeof(RefreshMonitoredDownloadsCommand));
             refreshMonitoredDownloads.Interval = _configService.CheckForFinishedDownloadInterval;
 
-            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, netImport, refreshMonitoredDownloads });
+            _scheduledTaskRepository.UpdateMany(new List<ScheduledTask> { rss, importList, refreshMonitoredDownloads, backup });
         }
     }
 }

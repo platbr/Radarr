@@ -30,9 +30,10 @@ namespace NzbDrone.Core.DecisionEngine
             var comparers = new List<CompareDelegate>
             {
                 CompareQuality,
-                ComparePreferredWords,
-                CompareIndexerFlags,
+                CompareCustomFormatScore,
                 CompareProtocol,
+                CompareIndexerPriority,
+                CompareIndexerFlags,
                 ComparePeersIfTorrent,
                 CompareAgeIfUsenet,
                 CompareSize
@@ -50,35 +51,36 @@ namespace NzbDrone.Core.DecisionEngine
             return leftValue.CompareTo(rightValue);
         }
 
+        private int CompareByReverse<TSubject, TValue>(TSubject left, TSubject right, Func<TSubject, TValue> funcValue)
+            where TValue : IComparable<TValue>
+        {
+            return CompareBy(left, right, funcValue) * -1;
+        }
+
         private int CompareAll(params int[] comparers)
         {
             return comparers.Select(comparer => comparer).FirstOrDefault(result => result != 0);
         }
 
-        private int CompareQuality(DownloadDecision x, DownloadDecision y)
+        private int CompareIndexerPriority(DownloadDecision x, DownloadDecision y)
         {
-            return CompareAll(CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.Movie.Profile.GetIndex(remoteMovie.ParsedMovieInfo.Quality.Quality)),
-                              CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.CustomFormatScore),
-                              CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.ParsedMovieInfo.Quality.Revision.Real),
-                              CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.ParsedMovieInfo.Quality.Revision.Version));
+            return CompareByReverse(x.RemoteMovie.Release, y.RemoteMovie.Release, release => release.IndexerPriority);
         }
 
-        private int ComparePreferredWords(DownloadDecision x, DownloadDecision y)
+        private int CompareQuality(DownloadDecision x, DownloadDecision y)
         {
-            return CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie =>
+            if (_configService.DownloadPropersAndRepacks == ProperDownloadTypes.DoNotPrefer)
             {
-                var title = remoteMovie.Release.Title;
-                var preferredWords = remoteMovie.Movie.Profile.PreferredTags;
+                return CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.Movie.Profile.GetIndex(remoteMovie.ParsedMovieInfo.Quality.Quality));
+            }
 
-                if (preferredWords == null)
-                {
-                    return 0;
-                }
+            return CompareAll(CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.Movie.Profile.GetIndex(remoteMovie.ParsedMovieInfo.Quality.Quality)),
+                              CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.ParsedMovieInfo.Quality.Revision));
+        }
 
-                var num = preferredWords.AsEnumerable().Count(w => title.ToLower().Contains(w.ToLower()));
-
-                return num;
-            });
+        private int CompareCustomFormatScore(DownloadDecision x, DownloadDecision y)
+        {
+            return CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie => remoteMovie.CustomFormatScore);
         }
 
         private int CompareIndexerFlags(DownloadDecision x, DownloadDecision y)
@@ -98,10 +100,10 @@ namespace NzbDrone.Core.DecisionEngine
 
         private int CompareProtocol(DownloadDecision x, DownloadDecision y)
         {
-            var result = CompareBy(x.RemoteMovie, y.RemoteMovie, remoteEpisode =>
+            var result = CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie =>
             {
-                var delayProfile = _delayProfileService.BestForTags(remoteEpisode.Movie.Tags);
-                var downloadProtocol = remoteEpisode.Release.DownloadProtocol;
+                var delayProfile = _delayProfileService.BestForTags(remoteMovie.Movie.Tags);
+                var downloadProtocol = remoteMovie.Release.DownloadProtocol;
                 return downloadProtocol == delayProfile.PreferredProtocol;
             });
 
@@ -119,15 +121,15 @@ namespace NzbDrone.Core.DecisionEngine
             }
 
             return CompareAll(
-                CompareBy(x.RemoteMovie, y.RemoteMovie, remoteEpisode =>
+                CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie =>
                 {
-                    var seeders = TorrentInfo.GetSeeders(remoteEpisode.Release);
+                    var seeders = TorrentInfo.GetSeeders(remoteMovie.Release);
 
                     return seeders.HasValue && seeders.Value > 0 ? Math.Round(Math.Log10(seeders.Value)) : 0;
                 }),
-                CompareBy(x.RemoteMovie, y.RemoteMovie, remoteEpisode =>
+                CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie =>
                 {
-                    var peers = TorrentInfo.GetPeers(remoteEpisode.Release);
+                    var peers = TorrentInfo.GetPeers(remoteMovie.Release);
 
                     return peers.HasValue && peers.Value > 0 ? Math.Round(Math.Log10(peers.Value)) : 0;
                 }));
@@ -141,10 +143,10 @@ namespace NzbDrone.Core.DecisionEngine
                 return 0;
             }
 
-            return CompareBy(x.RemoteMovie, y.RemoteMovie, remoteEpisode =>
+            return CompareBy(x.RemoteMovie, y.RemoteMovie, remoteMovie =>
             {
-                var ageHours = remoteEpisode.Release.AgeHours;
-                var age = remoteEpisode.Release.Age;
+                var ageHours = remoteMovie.Release.AgeHours;
+                var age = remoteMovie.Release.Age;
 
                 if (ageHours < 1)
                 {
@@ -205,9 +207,11 @@ namespace NzbDrone.Core.DecisionEngine
                         case IndexerFlags.PTP_Approved:
                         case IndexerFlags.PTP_Golden:
                         case IndexerFlags.HDB_Internal:
+                        case IndexerFlags.AHD_Internal:
                             score += 2;
                             break;
                         case IndexerFlags.G_Halfleech:
+                        case IndexerFlags.AHD_UserRelease:
                             score += 1;
                             break;
                     }

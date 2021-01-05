@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import getRelativeDate from 'Utilities/Date/getRelativeDate';
 import formatBytes from 'Utilities/Number/formatBytes';
+import translate from 'Utilities/String/translate';
 import styles from './MovieIndexPosterInfo.css';
 
 function MovieIndexPosterInfo(props) {
@@ -11,6 +12,7 @@ function MovieIndexPosterInfo(props) {
     showQualityProfile,
     added,
     inCinemas,
+    digitalRelease,
     physicalRelease,
     certification,
     path,
@@ -50,7 +52,7 @@ function MovieIndexPosterInfo(props) {
 
     return (
       <div className={styles.info}>
-        {`Added ${addedDate}`}
+        {translate('Added')}: {addedDate}
       </div>
     );
   }
@@ -68,7 +70,25 @@ function MovieIndexPosterInfo(props) {
 
     return (
       <div className={styles.info}>
-        {`In Cinemas ${inCinemasDate}`}
+        {translate('InCinemas')}: {inCinemasDate}
+      </div>
+    );
+  }
+
+  if (sortKey === 'digitalRelease' && digitalRelease) {
+    const digitalReleaseDate = getRelativeDate(
+      digitalRelease,
+      shortDateFormat,
+      showRelativeDates,
+      {
+        timeFormat,
+        timeForToday: false
+      }
+    );
+
+    return (
+      <div className={styles.info}>
+        {translate('Digital')}: {digitalReleaseDate}
       </div>
     );
   }
@@ -86,7 +106,7 @@ function MovieIndexPosterInfo(props) {
 
     return (
       <div className={styles.info}>
-        {`Released ${physicalReleaseDate}`}
+        {translate('Released')}: {physicalReleaseDate}
       </div>
     );
   }
@@ -125,6 +145,7 @@ MovieIndexPosterInfo.propTypes = {
   added: PropTypes.string,
   inCinemas: PropTypes.string,
   certification: PropTypes.string,
+  digitalRelease: PropTypes.string,
   physicalRelease: PropTypes.string,
   path: PropTypes.string.isRequired,
   sizeOnDisk: PropTypes.number,

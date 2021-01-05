@@ -123,7 +123,7 @@ namespace NzbDrone.Core.MediaFiles
                 foreach (var videoFile in videoFiles)
                 {
                     var movieParseResult =
-                        Parser.Parser.ParseMovieTitle(Path.GetFileName(videoFile), _config.ParsingLeniency > 0);
+                        Parser.Parser.ParseMovieTitle(Path.GetFileName(videoFile));
 
                     if (movieParseResult == null)
                     {
@@ -131,7 +131,7 @@ namespace NzbDrone.Core.MediaFiles
                         return false;
                     }
 
-                    if (_detectSample.IsSample(movie, videoFile, false) != DetectSampleResult.Sample)
+                    if (_detectSample.IsSample(movie, videoFile) != DetectSampleResult.Sample)
                     {
                         _logger.Warn("Non-sample file detected: [{0}]", videoFile);
                         return false;
@@ -189,7 +189,7 @@ namespace NzbDrone.Core.MediaFiles
                 _logger.Debug("{0} folder quality: {1}", cleanedUpName, folderInfo.Quality);
             }
 
-            var videoFiles = _diskScanService.FilterFiles(directoryInfo.FullName, _diskScanService.GetVideoFiles(directoryInfo.FullName));
+            var videoFiles = _diskScanService.FilterPaths(directoryInfo.FullName, _diskScanService.GetVideoFiles(directoryInfo.FullName));
 
             if (downloadClientItem == null)
             {
@@ -208,7 +208,12 @@ namespace NzbDrone.Core.MediaFiles
             var decisions = _importDecisionMaker.GetImportDecisions(videoFiles.ToList(), movie, downloadClientItem, folderInfo, true);
             var importResults = _importApprovedMovie.Import(decisions, true, downloadClientItem, importMode);
 
-            if ((downloadClientItem == null || downloadClientItem.CanBeRemoved) &&
+            if (importMode == ImportMode.Auto)
+            {
+                importMode = (downloadClientItem == null || downloadClientItem.CanMoveFiles) ? ImportMode.Move : ImportMode.Copy;
+            }
+
+            if (importMode == ImportMode.Move &&
                 importResults.Any(i => i.Result == ImportResultType.Imported) &&
                 ShouldDeleteFolder(directoryInfo, movie))
             {

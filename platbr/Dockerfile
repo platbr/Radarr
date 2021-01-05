@@ -35,7 +35,7 @@ ARG BRANCH="platbr"
 
 COPY . /build
 RUN dotnet restore src/Radarr.sln
-RUN ./build.sh
+RUN FRAMEWORK="netcoreapp3.1" RID="linux-x64" ./build.sh
 
 FROM lsiobase/ubuntu:focal
 ARG BUILD_NUMBER="3.10.0.001"

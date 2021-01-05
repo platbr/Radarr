@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Grid, WindowScroller } from 'react-virtualized';
-import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
-import hasDifferentItemsOrOrder from 'Utilities/Object/hasDifferentItemsOrOrder';
-import dimensions from 'Styles/Variables/dimensions';
 import Measure from 'Components/Measure';
 import MovieIndexItemConnector from 'Movie/Index/MovieIndexItemConnector';
+import dimensions from 'Styles/Variables/dimensions';
+import getIndexOfFirstCharacter from 'Utilities/Array/getIndexOfFirstCharacter';
+import hasDifferentItemsOrOrder from 'Utilities/Object/hasDifferentItemsOrOrder';
 import MovieIndexPoster from './MovieIndexPoster';
 import styles from './MovieIndexPosters.css';
 
@@ -104,6 +104,7 @@ class MovieIndexPosters extends Component {
 
     this._isInitialized = false;
     this._grid = null;
+    this._padding = props.isSmallScreen ? columnPaddingSmallScreen : columnPadding;
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -112,6 +113,7 @@ class MovieIndexPosters extends Component {
       sortKey,
       posterOptions,
       jumpToCharacter,
+      isSmallScreen,
       isMovieEditorActive
     } = this.props;
 
@@ -124,7 +126,7 @@ class MovieIndexPosters extends Component {
 
     if (prevProps.sortKey !== sortKey ||
         prevProps.posterOptions !== posterOptions) {
-      this.calculateGrid();
+      this.calculateGrid(width, isSmallScreen);
     }
 
     if (this._grid &&
@@ -165,10 +167,9 @@ class MovieIndexPosters extends Component {
       posterOptions
     } = this.props;
 
-    const padding = isSmallScreen ? columnPaddingSmallScreen : columnPadding;
     const columnWidth = calculateColumnWidth(width, posterOptions.size, isSmallScreen);
     const columnCount = Math.max(Math.floor(width / columnWidth), 1);
-    const posterWidth = columnWidth - padding;
+    const posterWidth = columnWidth - this._padding * 2;
     const posterHeight = calculatePosterHeight(posterWidth);
     const rowHeight = calculateRowHeight(posterHeight, sortKey, isSmallScreen, posterOptions);
 
@@ -219,7 +220,10 @@ class MovieIndexPosters extends Component {
       <div
         className={styles.container}
         key={key}
-        style={style}
+        style={{
+          ...style,
+          padding: this._padding
+        }}
       >
         <MovieIndexItemConnector
           key={movie.id}

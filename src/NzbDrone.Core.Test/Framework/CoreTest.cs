@@ -26,7 +26,7 @@ namespace NzbDrone.Core.Test.Framework
             Mocker.SetConstant<IHttpProxySettingsProvider>(new HttpProxySettingsProvider(Mocker.Resolve<ConfigService>()));
             Mocker.SetConstant<ICreateManagedWebProxy>(new ManagedWebProxyFactory(Mocker.Resolve<CacheManager>()));
             Mocker.SetConstant<IHttpDispatcher>(new ManagedHttpDispatcher(Mocker.Resolve<IHttpProxySettingsProvider>(), Mocker.Resolve<ICreateManagedWebProxy>(), Mocker.Resolve<UserAgentBuilder>(), Mocker.Resolve<IPlatformInfo>(), TestLogger));
-            Mocker.SetConstant<IHttpClient>(new HttpClient(new IHttpRequestInterceptor[0], Mocker.Resolve<CacheManager>(), Mocker.Resolve<RateLimitService>(), Mocker.Resolve<IHttpDispatcher>(), Mocker.Resolve<UserAgentBuilder>(), TestLogger));
+            Mocker.SetConstant<IHttpClient>(new HttpClient(Array.Empty<IHttpRequestInterceptor>(), Mocker.Resolve<CacheManager>(), Mocker.Resolve<RateLimitService>(), Mocker.Resolve<IHttpDispatcher>(), TestLogger));
             Mocker.SetConstant<IRadarrCloudRequestBuilder>(new RadarrCloudRequestBuilder());
         }
 
@@ -42,7 +42,7 @@ namespace NzbDrone.Core.Test.Framework
             Mocker.GetMock<IParsingService>().Setup(c => c.ParseMovieInfo(It.IsAny<string>(), It.IsAny<System.Collections.Generic.List<object>>()))
                 .Returns<string, System.Collections.Generic.List<object>>((title, helpers) =>
                 {
-                    var result = Parser.Parser.ParseMovieTitle(title, false);
+                    var result = Parser.Parser.ParseMovieTitle(title);
                     if (result != null)
                     {
                         result.Quality = QualityParser.ParseQuality(title);
