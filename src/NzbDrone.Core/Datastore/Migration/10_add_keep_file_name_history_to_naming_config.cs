@@ -3,7 +3,7 @@ using NzbDrone.Core.Datastore.Migration.Framework;
 
 namespace NzbDrone.Core.Datastore.Migration
 {
-    [Migration(9999)]
+    [Migration(10)]
     public class add_keep_file_name_history_to_naming_config : NzbDroneMigrationBase
     {
         protected override void MainDbUpgrade()
